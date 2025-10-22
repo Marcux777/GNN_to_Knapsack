@@ -1,0 +1,29 @@
+# GCN baseline for architecture comparison
+# Usage: knapsack-gnn train --config experiments/configs/ablations/gcn_full.yaml
+
+seed: 42
+device: cpu
+
+model:
+  type: gcn
+  hidden_dim: 128
+  num_layers: 4
+  dropout: 0.0
+
+training:
+  epochs: 50
+  batch_size: 32
+  learning_rate: 0.002
+  weight_decay: 1e-6
+
+data:
+  n_items_min: 10
+  n_items_max: 50
+  train_size: 1000
+  val_size: 200
+  test_size: 200
+
+features:
+  use_values: true
+  use_weights: true
+  use_capacity: true

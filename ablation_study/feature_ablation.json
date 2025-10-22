@@ -1,0 +1,26 @@
+{
+  "Baseline (All features)": {
+    "test_mean_gap": 0.0733349220997814,
+    "test_median_gap": 0.0,
+    "test_std_gap": 0.28902339477929895,
+    "test_feasibility_rate": 1.0
+  },
+  "No weights": {
+    "test_mean_gap": -10.731019248906192,
+    "test_median_gap": -10.585106758675245,
+    "test_std_gap": 6.457241121934364,
+    "test_feasibility_rate": 1.0
+  },
+  "No values": {
+    "test_mean_gap": 98.35698110383191,
+    "test_median_gap": 98.38411934230268,
+    "test_std_gap": 0.21951660915764845,
+    "test_feasibility_rate": 1.0
+  },
+  "Random features": {
+    "test_mean_gap": 11.080812324268932,
+    "test_median_gap": 9.194396135764306,
+    "test_std_gap": 18.28117215441397,
+    "test_feasibility_rate": 1.0
+  }
+}

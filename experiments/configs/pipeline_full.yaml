@@ -1,0 +1,34 @@
+# Full pipeline configuration (train + evaluate)
+# Usage: knapsack-gnn pipeline --config experiments/configs/pipeline_full.yaml
+
+seed: 1337
+device: cpu
+
+# Training (inherits from train_default.yaml)
+train:
+  config: experiments/configs/train_default.yaml
+  skip: false  # Set to true to skip training
+
+# Evaluation strategies to run
+strategies:
+  - sampling
+  - warm_start
+
+# Sampling config
+sampling:
+  config: experiments/configs/eval_sampling.yaml
+
+# Warm-start config
+warm_start:
+  config: experiments/configs/eval_warm_start.yaml
+
+# Pipeline options
+pipeline:
+  generate_data: true  # Generate fresh dataset
+  save_plots: true
+  compare_strategies: true  # Generate comparison plots
+
+# Output directory
+output:
+  base_dir: checkpoints
+  run_name: auto  # auto-generate based on timestamp, or specify custom name

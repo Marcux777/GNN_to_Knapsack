@@ -1,0 +1,196 @@
+# Publication-Grade Validation Configuration
+# Configuration for comprehensive validation experiments
+
+# Statistical Parameters
+statistical:
+  alpha: 0.05  # Significance level (0.05 for 95% confidence)
+  n_bootstrap: 10000  # Bootstrap samples for CI estimation
+  random_state: 42  # Random seed for reproducibility
+  desired_power: 0.8  # Target statistical power (80%)
+
+# Baseline Methods
+baselines:
+  - greedy  # Greedy heuristic (value/weight ratio)
+  - random  # Random baseline
+  # Add custom baselines here
+
+# Cross-Validation Settings
+cross_validation:
+  enabled: true  # Enable cross-validation
+  n_folds: 5  # Number of folds
+  stratify: true  # Stratify by problem size
+  stratify_bins: 5  # Number of stratification bins
+
+# GNN Evaluation Settings
+gnn:
+  strategy: sampling  # Inference strategy
+  n_samples: 200  # Number of samples for sampling strategy
+  temperature: 1.0  # Sampling temperature
+  device: cpu  # Device (cuda/cpu)
+
+# Validation Experiments
+experiments:
+  baseline_comparison: true  # Compare with baselines
+  cross_validation: false  # Run CV (time-consuming)
+  power_analysis: true  # Statistical power analysis
+  multiple_comparison: true  # Friedman test for 3+ methods
+  assumption_checking: true  # Check parametric test assumptions
+  ood_generalization: false  # Out-of-distribution tests
+
+# Output Settings
+output:
+  directory: validation_report  # Output directory
+  generate_latex: true  # Generate LaTeX tables
+  generate_figures: true  # Generate publication figures
+  figure_formats:
+    - pdf  # PDF for publications
+    - png  # PNG for presentations
+  figure_dpi: 300  # Figure resolution
+
+# Report Generation
+report:
+  include_summary: true  # Include executive summary
+  include_latex_snippets: true  # Include LaTeX snippets for copy-paste
+  include_interpretation: true  # Include result interpretation
+  save_json: true  # Save results as JSON
+  save_txt: true  # Save text report
+
+# Dataset Paths
+data:
+  data_dir: data/datasets  # Dataset directory
+  train_file: train.pkl  # Training set
+  val_file: val.pkl  # Validation set
+  test_file: test.pkl  # Test set
+
+# Model Parameters
+model:
+  checkpoint_required: true  # Require trained model
+  architecture: pna  # GNN architecture
+  hidden_dim: 64  # Hidden dimension
+  num_layers: 3  # Number of GNN layers
+  dropout: 0.1  # Dropout rate
+
+# Advanced Settings
+advanced:
+  # Multiple testing correction methods
+  multiple_testing_corrections:
+    - bonferroni  # Conservative
+    - holm  # Less conservative
+    - benjamini_hochberg  # FDR control
+
+  # Effect size metrics
+  effect_sizes:
+    - cohens_d  # Parametric
+    - cliffs_delta  # Non-parametric
+    - vargha_delaney_a  # Non-parametric
+
+  # Statistical tests
+  parametric_tests:
+    - paired_t_test  # Main parametric test
+    - independent_t_test  # For independent samples
+
+  non_parametric_tests:
+    - wilcoxon  # Paired non-parametric
+    - mann_whitney_u  # Independent non-parametric
+    - sign_test  # Simple paired test
+    - friedman  # Multiple related samples
+
+  # Assumption tests
+  normality_tests:
+    - shapiro_wilk  # Standard normality test
+    - anderson_darling  # More sensitive
+
+  variance_tests:
+    - levene  # Homogeneity of variances
+
+# Validation Checklist
+# Ensures all requirements for publication are met
+checklist:
+  - name: "Sample size justification"
+    check: power_analysis
+    required: true
+    description: "Demonstrate adequate statistical power"
+
+  - name: "Baseline comparisons"
+    check: baseline_comparison
+    required: true
+    description: "Compare against established baselines"
+
+  - name: "Statistical significance"
+    check: statistical_tests
+    required: true
+    description: "Report p-values and confidence intervals"
+
+  - name: "Effect sizes"
+    check: effect_sizes
+    required: true
+    description: "Report practical significance (Cohen's d, etc.)"
+
+  - name: "Multiple testing correction"
+    check: multiple_testing
+    required: true
+    description: "Correct for multiple comparisons"
+
+  - name: "Assumption validation"
+    check: assumptions
+    required: false
+    description: "Check parametric test assumptions"
+
+  - name: "Cross-validation"
+    check: cross_validation
+    required: false
+    description: "Estimate generalization performance"
+
+  - name: "OOD generalization"
+    check: ood_tests
+    required: false
+    description: "Test on larger problem instances"
+
+# LaTeX Template Settings
+latex:
+  table_style: booktabs  # Use booktabs package
+  float_placement: "t"  # Top of page
+  font_size: small  # Table font size
+  caption_position: top  # Caption above table
+  highlight_best: true  # Bold best results
+  significant_marker: "*"  # Mark significant results
+
+# Figure Settings
+figures:
+  style: ieee  # Publication style (ieee, neurips, acm)
+  use_latex: true  # Use LaTeX for text rendering
+  font_family: serif  # Font family
+  font_size: 10  # Base font size
+  color_scheme: Set2  # Matplotlib colormap
+  grid_alpha: 0.3  # Grid transparency
+
+# Recommended Settings for Common Scenarios
+scenarios:
+  quick_validation:
+    # Fast validation for development
+    cross_validation.enabled: false
+    statistical.n_bootstrap: 1000
+    experiments.ood_generalization: false
+
+  full_publication:
+    # Complete validation for paper submission
+    cross_validation.enabled: true
+    statistical.n_bootstrap: 10000
+    experiments.ood_generalization: true
+    output.generate_latex: true
+    output.generate_figures: true
+
+  conference_submission:
+    # Balanced validation for conferences
+    cross_validation.enabled: true
+    cross_validation.n_folds: 5
+    statistical.n_bootstrap: 5000
+    output.generate_latex: true
+
+  journal_submission:
+    # Comprehensive validation for journals
+    cross_validation.enabled: true
+    cross_validation.n_folds: 10
+    statistical.n_bootstrap: 10000
+    experiments.ood_generalization: true
+    advanced.normality_tests: all

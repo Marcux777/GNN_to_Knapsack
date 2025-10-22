@@ -1,0 +1,79 @@
+# Python / build artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+
+# IDEs and editors
+.vscode/
+.idea/
+.claude/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+wandb/
+mlruns/
+
+# Data and model artifacts (not publication snapshots)
+# Note: Specific important files are versioned via exceptions below
+data/*
+!data/README.md
+
+checkpoints/*
+!checkpoints/.gitkeep
+
+# PyTorch models (managed by Git LFS)
+# See .gitattributes for LFS configuration
+
+# Temporary results (publishable snapshots go in results/)
+# results/ is versioned - contains publication-ready outputs
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+*.ipynb
+
+# Local configuration files (not for remote repo)
+CLAUDE.md
+AGENTS.md
+install.sh
+verify_install.py
+requirements_step2.txt
+
+# === IMPORTANT: What IS versioned ===
+# ✅ configs/**/*.yaml - All configuration files
+# ✅ results/**/* - Publication snapshots (PNG, JSON, CSV)
+# ✅ docs/**/* - All documentation and assets
+# ✅ src/**/*.py - All source code
+# ✅ experiments/**/*.py - All experimental scripts
+# ✅ tests/**/*.py - All tests
+# ✅ README.md - Main documentation

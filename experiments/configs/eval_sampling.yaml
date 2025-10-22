@@ -1,0 +1,31 @@
+# Evaluation configuration for sampling strategy
+# Usage: knapsack-gnn eval --checkpoint checkpoints/run_XXX --config experiments/configs/eval_sampling.yaml
+
+seed: 1337
+device: cpu
+
+# Decoding strategy
+strategy: sampling
+
+# Sampling parameters
+sampling:
+  temperature: 1.0
+  schedule: [32, 64, 128]  # Adaptive sampling schedule
+  max_samples: 128
+  early_stop: true
+  early_stop_threshold: 0.001  # Stop if best solution doesn't improve
+
+# Evaluation settings
+evaluation:
+  test_only: false  # Evaluate on both val and test
+  batch_size: 1  # Typically 1 for evaluation
+  num_workers: 0
+  save_solutions: true  # Save predicted solutions
+  save_plots: true  # Generate gap histograms
+
+# Output
+output:
+  export_csv: true
+  export_json: true
+  export_plots: true
+  verbose: true

@@ -1,0 +1,51 @@
+{
+  "OR-Tools (Exact)": {
+    "method": "OR-Tools (Exact)",
+    "mean_gap": 0.0,
+    "median_gap": 0.0,
+    "std_gap": 0.0,
+    "max_gap": 0.0,
+    "min_gap": 0.0,
+    "mean_time": 0.0005450876300164964,
+    "median_time": 0.0004657380004573497,
+    "feasibility_rate": 1.0,
+    "throughput": 1834.5674070235941
+  },
+  "GNN-PNA (sampling)": {
+    "method": "GNN-PNA (sampling)",
+    "mean_gap": 0.06966155834580899,
+    "median_gap": 0.0,
+    "std_gap": 0.2998975367966457,
+    "max_gap": 2.6881720430107525,
+    "min_gap": 0.0,
+    "mean_time": 0.014090549369993823,
+    "median_time": 0.013889287499750935,
+    "feasibility_rate": 1.0,
+    "throughput": 70.96955368748964
+  },
+  "Greedy": {
+    "mean_gap": 0.49301136883909197,
+    "median_gap": 0.12928033280371262,
+    "std_gap": 1.0193731637463548,
+    "max_gap": 8.355795148247978,
+    "min_gap": 0.0,
+    "mean_time": 0.0001508105200537102,
+    "median_time": 0.0001422330001332739,
+    "feasibility_rate": 1.0,
+    "throughput": 6630.837156743816,
+    "n_instances": 100,
+    "method": "Greedy"
+  },
+  "Random": {
+    "method": "Random",
+    "mean_gap": 11.473494034354097,
+    "median_gap": 12.66662590192002,
+    "std_gap": 5.911116377641033,
+    "max_gap": 23.10899344848124,
+    "min_gap": 0.0,
+    "mean_time": 0.006280071799928919,
+    "median_time": 0.0059694124997804465,
+    "feasibility_rate": 1.0,
+    "throughput": 159.2338482517538
+  }
+}

@@ -1,0 +1,51 @@
+# Default training configuration for Knapsack GNN
+# Usage: knapsack-gnn train --config experiments/configs/train_default.yaml
+
+seed: 1337
+device: cpu  # or cuda
+
+# Model architecture
+model:
+  type: pna  # pna, gcn, or gat
+  hidden_dim: 128
+  num_layers: 4
+  dropout: 0.0
+  aggregators: ["mean", "max", "min", "std"]  # PNA aggregators
+  scalers: ["identity", "amplification", "attenuation"]  # PNA scalers
+
+# Training hyperparameters
+training:
+  epochs: 50
+  batch_size: 32
+  learning_rate: 0.002
+  weight_decay: 1e-6
+  optimizer: adam
+  scheduler: null  # or step, cosine, plateau
+  gradient_clip: 1.0
+  early_stopping:
+    enabled: true
+    patience: 10
+    min_delta: 0.001
+
+# Dataset configuration
+data:
+  n_items_min: 10
+  n_items_max: 50
+  train_size: 1000
+  val_size: 200
+  test_size: 200
+  value_range: [1, 2500]
+  weight_range: [1, 2500]
+  capacity_ratio: 0.5  # Capacity as fraction of total weight
+
+# Logging and checkpointing
+logging:
+  log_interval: 10  # Log every N batches
+  save_best: true
+  save_last: true
+  metrics: ["loss", "accuracy", "gap"]
+
+# Reproducibility
+reproducibility:
+  deterministic: true
+  benchmark: false  # Set to true for performance, false for reproducibility

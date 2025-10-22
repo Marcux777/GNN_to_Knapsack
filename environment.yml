@@ -1,0 +1,17 @@
+name: knapsack-gnn
+channels:
+  - pytorch
+  - conda-forge
+  - defaults
+
+dependencies:
+  - python>=3.10
+  - pytorch==2.9.0
+  - numpy==2.2.6
+  - scipy==1.16.2
+  - matplotlib==3.10.7
+  - tqdm==4.67.1
+  - pip
+  - pip:
+    - torch-geometric==2.7.0
+    - ortools==9.14.6206

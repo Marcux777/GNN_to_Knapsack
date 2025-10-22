@@ -1,0 +1,40 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "GNN to Knapsack: Learning to Optimize with Graph Neural Networks"
+version: 1.0.0
+date-released: 2025-10-22
+authors:
+  - family-names: "Vinicius"
+    given-names: "Marcus"
+    email: "marcusvinicius@example.com"
+repository-code: "https://github.com/Marcux777/GNN_to_Knapsack"
+url: "https://github.com/Marcux777/GNN_to_Knapsack"
+license: MIT
+keywords:
+  - graph-neural-networks
+  - combinatorial-optimization
+  - knapsack-problem
+  - learning-to-optimize
+  - deep-learning
+  - machine-learning
+  - operations-research
+abstract: >-
+  Implementation of Graph Neural Networks for solving the 0-1 Knapsack
+  Problem using the Learning to Optimize (L2O) approach. Achieves 99.93%
+  of optimal value (0.068% gap) with comprehensive validation framework
+  including statistical analysis, probability calibration, and solution
+  repair mechanisms. The system includes PNA-based GNN architecture,
+  multiple decoding strategies (sampling, warm-start ILP), and extensive
+  evaluation pipelines for out-of-distribution generalization and ablation
+  studies.
+
+preferred-citation:
+  type: software
+  title: "GNN to Knapsack: Learning to Optimize with Graph Neural Networks"
+  authors:
+    - family-names: "Vinicius"
+      given-names: "Marcus"
+  year: 2025
+  version: 1.0.0
+  repository-code: "https://github.com/Marcux777/GNN_to_Knapsack"

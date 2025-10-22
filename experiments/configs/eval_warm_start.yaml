@@ -1,0 +1,35 @@
+# Evaluation configuration for warm-start ILP strategy
+# Usage: knapsack-gnn eval --checkpoint checkpoints/run_XXX --config experiments/configs/eval_warm_start.yaml
+
+seed: 1337
+device: cpu
+
+# Decoding strategy
+strategy: warm_start
+
+# Sampling parameters (for initial solution)
+sampling:
+  temperature: 1.0
+  schedule: [32, 64, 128]
+  max_samples: 128
+
+# ILP refinement parameters
+ilp:
+  fix_threshold: 0.9  # Fix variables with probability >= threshold
+  time_limit: 1.0  # Max time in seconds
+  num_workers: 1  # CP-SAT workers (1 for determinism)
+  use_hints: true  # Use GNN probabilities as hints
+
+# Evaluation settings
+evaluation:
+  test_only: false
+  batch_size: 1
+  save_solutions: true
+  save_plots: true
+
+# Output
+output:
+  export_csv: true
+  export_json: true
+  export_plots: true
+  verbose: true

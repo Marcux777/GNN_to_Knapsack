@@ -143,20 +143,42 @@ ignore = [
 [tool.ruff.lint.per-file-ignores]
 "__init__.py" = ["F401"]  # Unused imports in __init__.py
 
+# Mypy: Hybrid strictness configuration
+# - Strict on src/ (production code)
+# - Moderate on experiments/ and tests/
 [tool.mypy]
 python_version = "3.10"
 warn_return_any = true
 warn_unused_configs = true
-disallow_untyped_defs = false
-disallow_incomplete_defs = false
+# Strict settings for src/
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
 check_untyped_defs = true
 disallow_untyped_decorators = false
 no_implicit_optional = true
 warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
+strict_equality = true
+strict_concatenate = true
 follow_imports = "normal"
 ignore_missing_imports = true
+show_error_codes = true
+pretty = true
+
+# Moderate settings for experiments/ (research code)
+[[tool.mypy.overrides]]
+module = "experiments.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+warn_return_any = false
+
+# Moderate settings for tests/ (test code)
+[[tool.mypy.overrides]]
+module = "tests.*"
+disallow_untyped_defs = false
+disallow_incomplete_defs = false
+warn_return_any = false
 
 [tool.black]
 line-length = 100

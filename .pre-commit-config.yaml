@@ -59,7 +59,7 @@ repos:
         entry: bash -c "mypy src/knapsack_gnn/ experiments/ --ignore-missing-imports || exit 1"
         language: system
         pass_filenames: false
-        stages: [push]
+        stages: [pre-push]
         verbose: true
 
       # Run quick tests (exclude slow tests)
@@ -68,7 +68,7 @@ repos:
         entry: bash -c "pytest tests/ -q -m 'not slow' --maxfail=3 || exit 1"
         language: system
         pass_filenames: false
-        stages: [push]
+        stages: [pre-push]
         verbose: true
 
       # Check dependency drift
@@ -77,13 +77,13 @@ repos:
         entry: make check-deps
         language: system
         pass_filenames: false
-        stages: [push]
+        stages: [pre-push]
         files: ^(pyproject\.toml|requirements.*\.txt)$
         verbose: true
 
 # Global settings
 default_language_version:
-  python: python3.10
+  python: python3
 
 # Skip these hooks by default (can be overridden per-hook)
 # To run all including slow: SKIP= pre-commit run --all-files

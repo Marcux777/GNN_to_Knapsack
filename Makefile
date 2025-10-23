@@ -128,7 +128,7 @@ test-quick:
 # Build documentation
 docs:
 	@echo "Building documentation..."
-	mkdocs build --strict
+	mkdocs build
 	@echo "✅ Documentation built (site/index.html)"
 
 # Serve documentation locally

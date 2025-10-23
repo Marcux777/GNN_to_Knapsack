@@ -6,9 +6,9 @@ Uses Graph Attention Networks with multi-head attention
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_geometric.nn import GATConv
 from torch_geometric.data import Data
-from typing import Optional
+from torch_geometric.nn import GATConv
+
 
 class HeterogeneousEncoder(nn.Module):
     """
@@ -23,20 +23,20 @@ class HeterogeneousEncoder(nn.Module):
             nn.Linear(item_input_dim, hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU()
+            nn.ReLU(),
         )
 
         self.constraint_encoder = nn.Sequential(
             nn.Linear(constraint_input_dim, hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU()
+            nn.ReLU(),
         )
 
     def forward(self, x: torch.Tensor, node_types: torch.Tensor) -> torch.Tensor:
         """Encode node features based on their types"""
-        item_mask = (node_types == 0)
-        constraint_mask = (node_types == 1)
+        item_mask = node_types == 0
+        constraint_mask = node_types == 1
 
         h = torch.zeros(x.size(0), self.item_encoder[0].out_features, device=x.device)
 
@@ -48,6 +48,7 @@ class HeterogeneousEncoder(nn.Module):
 
         return h
 
+
 class KnapsackGAT(nn.Module):
     """
     GAT-based GNN for Knapsack Problem
@@ -58,13 +59,15 @@ class KnapsackGAT(nn.Module):
     3. Decoding to item selection probabilities
     """
 
-    def __init__(self,
-                 item_input_dim: int = 2,
-                 constraint_input_dim: int = 1,
-                 hidden_dim: int = 64,
-                 num_layers: int = 3,
-                 dropout: float = 0.1,
-                 num_heads: int = 4):
+    def __init__(
+        self,
+        item_input_dim: int = 2,
+        constraint_input_dim: int = 1,
+        hidden_dim: int = 64,
+        num_layers: int = 3,
+        dropout: float = 0.1,
+        num_heads: int = 4,
+    ):
         """
         Args:
             item_input_dim: Input dimension for item features (default: 2)
@@ -81,7 +84,9 @@ class KnapsackGAT(nn.Module):
         self.num_heads = num_heads
 
         # Ensure hidden_dim is divisible by num_heads
-        assert hidden_dim % num_heads == 0, f"hidden_dim ({hidden_dim}) must be divisible by num_heads ({num_heads})"
+        assert hidden_dim % num_heads == 0, (
+            f"hidden_dim ({hidden_dim}) must be divisible by num_heads ({num_heads})"
+        )
 
         # Heterogeneous encoder
         self.encoder = HeterogeneousEncoder(item_input_dim, constraint_input_dim, hidden_dim)
@@ -96,7 +101,7 @@ class KnapsackGAT(nn.Module):
                     out_channels=hidden_dim,
                     heads=1,
                     concat=False,
-                    dropout=dropout
+                    dropout=dropout,
                 )
             else:
                 # Middle layers: multi-head with concat
@@ -106,7 +111,7 @@ class KnapsackGAT(nn.Module):
                     out_channels=hidden_dim // num_heads,
                     heads=num_heads,
                     concat=True,  # Concatenate heads
-                    dropout=dropout
+                    dropout=dropout,
                 )
             self.convs.append(conv)
 
@@ -122,7 +127,7 @@ class KnapsackGAT(nn.Module):
             nn.ReLU(),
             nn.Dropout(dropout),
             nn.Linear(hidden_dim // 2, 1),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         )
 
     def forward(self, data: Data) -> torch.Tensor:
@@ -153,7 +158,7 @@ class KnapsackGAT(nn.Module):
                 h = h_new
 
         # 3. Decode item probabilities (only for item nodes)
-        item_mask = (node_types == 0)
+        item_mask = node_types == 0
         item_embeddings = h[item_mask]
 
         # Get probabilities for each item
@@ -198,15 +203,17 @@ class KnapsackGAT(nn.Module):
                 h = F.relu(h)
             elif i == layer_idx:
                 # Get attention weights
-                h, (edge_index_out, attention_weights) = conv(h, edge_index, return_attention_weights=True)
+                h, (edge_index_out, attention_weights) = conv(
+                    h, edge_index, return_attention_weights=True
+                )
                 return edge_index_out, attention_weights
 
         return None, None
 
-def create_gat_model(hidden_dim: int = 64,
-                     num_layers: int = 3,
-                     dropout: float = 0.1,
-                     num_heads: int = 4) -> KnapsackGAT:
+
+def create_gat_model(
+    hidden_dim: int = 64, num_layers: int = 3, dropout: float = 0.1, num_heads: int = 4
+) -> KnapsackGAT:
     """
     Factory function to create KnapsackGAT model
 
@@ -219,23 +226,26 @@ def create_gat_model(hidden_dim: int = 64,
     Returns:
         Initialized KnapsackGAT model
     """
-    print(f"Creating GAT model (hidden_dim={hidden_dim}, num_layers={num_layers}, heads={num_heads})...")
+    print(
+        f"Creating GAT model (hidden_dim={hidden_dim}, num_layers={num_layers}, heads={num_heads})..."
+    )
     model = KnapsackGAT(
         item_input_dim=2,
         constraint_input_dim=1,
         hidden_dim=hidden_dim,
         num_layers=num_layers,
         dropout=dropout,
-        num_heads=num_heads
+        num_heads=num_heads,
     )
 
     print(f"Model created with {sum(p.numel() for p in model.parameters())} parameters")
     return model
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # Example usage
-    from data.knapsack_generator import KnapsackGenerator, KnapsackSolver
     from data.graph_builder import KnapsackGraphBuilder
+    from data.knapsack_generator import KnapsackGenerator, KnapsackSolver
 
     print("Creating sample instance...")
     generator = KnapsackGenerator(seed=42)

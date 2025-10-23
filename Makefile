@@ -62,7 +62,8 @@ CHECKPOINT_DIR := $(CHECKPOINT)
 endif
 
 .PHONY: install train evaluate ood demo quick_train pipeline clean \
-        sync-deps check-deps format lint mypy test test-quick docs docs-serve
+        sync-deps check-deps format lint mypy test test-quick docs docs-serve commit \
+        validate-configs download-checkpoint generate-datasets verify-reproducibility
 
 install:
 	$(PIP) install -r requirements.txt
@@ -135,6 +136,69 @@ docs:
 docs-serve:
 	@echo "Serving documentation at http://127.0.0.1:8000"
 	mkdocs serve
+
+# Launch Jupyter Lab for interactive notebooks
+notebooks:
+	@echo "Launching Jupyter Lab..."
+	@echo "Notebooks available in: notebooks/"
+	jupyter lab notebooks/
+
+# Generate API documentation
+api-docs:
+	@echo "Generating API documentation..."
+	mkdocs build
+	@echo "✅ API docs generated in site/"
+
+# Interactive commit message helper (Conventional Commits)
+commit:
+	@echo "Creating commit with Conventional Commits format..."
+	@echo "Tip: Use commitizen for guided commit message creation"
+	@if command -v cz >/dev/null 2>&1; then \
+		cz commit; \
+	else \
+		echo "❌ commitizen not found. Install with: pip install commitizen"; \
+		echo "Or commit manually following format: <type>(<scope>): <subject>"; \
+		exit 1; \
+	fi
+
+# Validate configuration files
+validate-configs:
+	@echo "Validating configuration files..."
+	@$(PYTHON) -c "from knapsack_gnn.config import validate_config_file; \
+		import sys; \
+		from pathlib import Path; \
+		configs = list(Path('configs').glob('**/*.yaml')); \
+		failed = []; \
+		for cfg in configs: \
+			is_valid, msg = validate_config_file(cfg); \
+			print(msg); \
+			if not is_valid: failed.append(cfg); \
+		sys.exit(1 if failed else 0)"
+	@echo "✅ All configs valid"
+
+# Download pre-trained checkpoint
+RUN ?= run_20251020_104533
+SOURCE ?= github
+download-checkpoint:
+	@echo "Downloading checkpoint: $(RUN) from $(SOURCE)"
+	$(PYTHON) scripts/download_artifacts.py --checkpoint $(RUN) --source $(SOURCE)
+
+# Generate datasets with specific seed
+DATASET_CONFIG ?= configs/train_default.yaml
+DATASET_SEED ?= 1337
+generate-datasets:
+	@echo "Generating datasets from $(DATASET_CONFIG) with seed $(DATASET_SEED)"
+	$(PYTHON) scripts/generate_datasets.py --config $(DATASET_CONFIG) --seed $(DATASET_SEED)
+
+# Verify reproducibility of checkpoint
+TOLERANCE ?= 1e-6
+verify-reproducibility:
+	@if [ -z "$(CHECKPOINT_DIR)" ]; then \
+		echo "No checkpoint directory specified. Set CHECKPOINT_DIR=<path>"; \
+		exit 1; \
+	fi
+	@echo "Verifying reproducibility of $(CHECKPOINT_DIR) with tolerance $(TOLERANCE)"
+	$(PYTHON) scripts/verify_reproducibility.py --checkpoint $(CHECKPOINT_DIR) --tolerance $(TOLERANCE)
 
 train:
 	@echo "Training Knapsack GNN (checkpoints saved under $(CHECKPOINT_ROOT))"

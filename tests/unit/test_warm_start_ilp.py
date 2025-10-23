@@ -5,7 +5,8 @@ Tests for warm-start ILP refinement.
 import numpy as np
 import torch
 
-from knapsack_gnn.solvers.cp_sat import warm_start_ilp_solve, refine_solution
+from knapsack_gnn.solvers.cp_sat import refine_solution, warm_start_ilp_solve
+
 
 class TestWarmStartILP:
     """Test suite for ILP refinement with GNN warm-start."""
@@ -161,7 +162,7 @@ class TestWarmStartILP:
         )
 
         # Should produce valid output
-        assert isinstance(refined_value, (int, float)), "Value should be numeric"
+        assert isinstance(refined_value, int | float), "Value should be numeric"
         assert len(refined_solution) == inst["n_items"], "Solution should match instance size"
         assert ilp_time >= 0, "ILP time should be non-negative"
         assert status in ["OPTIMAL", "FEASIBLE", "INFEASIBLE", "UNKNOWN"], (
@@ -215,6 +216,7 @@ class TestWarmStartILP:
         assert ilp_value >= greedy_value, (
             f"ILP ({ilp_value}) should improve on greedy ({greedy_value})"
         )
+
 
 class TestILPIntegration:
     """Integration tests for warm-start ILP in full pipeline."""

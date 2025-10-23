@@ -1,0 +1,21 @@
+/* Custom styles for knapsack-gnn documentation */
+
+/* Improve code block appearance */
+.highlight {
+    border-radius: 0.2em;
+}
+
+/* Add spacing to admonitions */
+.admonition {
+    margin: 1.5em 0;
+}
+
+/* Improve table readability */
+table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+table th, table td {
+    padding: 0.6em 1em;
+}

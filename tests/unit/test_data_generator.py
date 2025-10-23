@@ -10,6 +10,7 @@ from knapsack_gnn.data.generator import (
     solve_with_ortools,
 )
 
+
 class TestKnapsackGenerator:
     """Test suite for knapsack instance generation."""
 
@@ -20,7 +21,7 @@ class TestKnapsackGenerator:
 
         assert len(instance["values"]) == n_items
         assert len(instance["weights"]) == n_items
-        assert isinstance(instance["capacity"], (int, float))
+        assert isinstance(instance["capacity"], int | float)
 
     def test_generate_instance_positive_values(self):
         """Test that values and weights are positive."""
@@ -53,6 +54,7 @@ class TestKnapsackGenerator:
         inst2 = generate_knapsack_instance(15, seed=123)
 
         assert not np.array_equal(inst1["values"], inst2["values"])
+
 
 class TestExactSolvers:
     """Test suite for exact knapsack solvers."""
@@ -117,6 +119,7 @@ class TestExactSolvers:
 
         assert val1 == val2, "Same seed should produce same optimal value"
         assert np.array_equal(sol1, sol2), "Same seed should produce same solution"
+
 
 class TestInstanceDistribution:
     """Test statistical properties of generated instances."""

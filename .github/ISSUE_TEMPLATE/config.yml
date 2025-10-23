@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Documentation
+    url: https://github.com/Marcux777/GNN_to_Knapsack/tree/main/docs
+    about: Check the documentation for guides and API reference
+  - name: Discussions
+    url: https://github.com/Marcux777/GNN_to_Knapsack/discussions
+    about: Ask questions and discuss ideas with the community

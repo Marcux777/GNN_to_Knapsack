@@ -8,10 +8,10 @@ and reproducible results.
 
 import os
 import random
-from typing import Optional
 
 import numpy as np
 import torch
+
 
 def set_seed(seed: int, deterministic: bool = True) -> None:
     """
@@ -63,7 +63,8 @@ def set_seed(seed: int, deterministic: bool = True) -> None:
         if "CUBLAS_WORKSPACE_CONFIG" not in os.environ:
             os.environ["CUBLAS_WORKSPACE_CONFIG"] = ":4096:8"
 
-def get_checkpoint_name(base_name: str, seed: Optional[int] = None) -> str:
+
+def get_checkpoint_name(base_name: str, seed: int | None = None) -> str:
     """
     Generate checkpoint directory name with optional seed suffix.
 
@@ -83,6 +84,7 @@ def get_checkpoint_name(base_name: str, seed: Optional[int] = None) -> str:
     if seed is not None:
         return f"{base_name}_seed{seed}"
     return base_name
+
 
 def validate_seed(seed: int) -> None:
     """

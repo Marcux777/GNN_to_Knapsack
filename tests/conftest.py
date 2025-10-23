@@ -8,10 +8,12 @@ import torch
 
 from knapsack_gnn.training.utils import set_seed
 
+
 @pytest.fixture(scope="session", autouse=True)
 def set_test_seed():
     """Set a fixed seed for all tests to ensure reproducibility."""
     set_seed(42, deterministic=True)
+
 
 @pytest.fixture
 def small_knapsack_instance():
@@ -38,6 +40,7 @@ def small_knapsack_instance():
         "optimal_solution": optimal_solution,
         "n_items": 5,
     }
+
 
 @pytest.fixture
 def tiny_knapsack_batch():
@@ -73,6 +76,7 @@ def tiny_knapsack_batch():
 
     return instances
 
+
 @pytest.fixture
 def temp_checkpoint_dir(tmp_path):
     """
@@ -84,6 +88,7 @@ def temp_checkpoint_dir(tmp_path):
     checkpoint_dir = tmp_path / "checkpoints" / "test_run"
     checkpoint_dir.mkdir(parents=True, exist_ok=True)
     return checkpoint_dir
+
 
 @pytest.fixture
 def mock_model_weights():

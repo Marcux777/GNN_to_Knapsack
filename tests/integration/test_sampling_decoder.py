@@ -7,6 +7,7 @@ import torch
 
 from knapsack_gnn.decoding.sampling import sample_solutions, vectorized_sampling
 
+
 class TestSamplingDecoder:
     """Test suite for sampling-based inference."""
 
@@ -136,6 +137,7 @@ class TestSamplingDecoder:
         # At least some solutions should be feasible (with probability > 0)
         # This is a soft check since randomness can make all infeasible in rare cases
         assert feasible_count >= 0, "Feasibility check should work"
+
 
 class TestAdaptiveSampling:
     """Test suite for adaptive sampling strategies."""

@@ -15,12 +15,11 @@ Usage:
     reporter.save_publication_figure(fig, "comparison.pdf")
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
-import matplotlib as mpl
-from typing import Dict, List, Optional, Tuple, Any
 from pathlib import Path
-import warnings
+
+import matplotlib.pyplot as plt
+import numpy as np
+
 
 class AcademicReporter:
     """
@@ -68,7 +67,7 @@ class AcademicReporter:
                     "lines.markersize": 6,
                 }
             )
-        except:
+        except Exception:
             # Fallback without LaTeX
             plt.rcParams.update(
                 {
@@ -82,8 +81,8 @@ class AcademicReporter:
 
     def generate_comparison_table(
         self,
-        results: Dict[str, Dict],
-        metrics: List[str] = None,
+        results: dict[str, dict],
+        metrics: list[str] = None,
         caption: str = "Performance comparison",
         label: str = "tab:comparison",
         highlight_best: bool = True,
@@ -112,7 +111,7 @@ class AcademicReporter:
         latex.append(f"\\label{{{label}}}")
 
         # Column specification
-        n_cols = len(metrics) + 1
+        len(metrics) + 1
         col_spec = "l" + "c" * len(metrics)
         latex.append(f"\\begin{{tabular}}{{{col_spec}}}")
         latex.append(r"\toprule")
@@ -140,7 +139,7 @@ class AcademicReporter:
         if highlight_best:
             for metric in metrics:
                 values = []
-                for method, result in results.items():
+                for _, result in results.items():
                     if metric in result:
                         values.append(result[metric])
                 if values:
@@ -193,7 +192,7 @@ class AcademicReporter:
 
     def generate_statistical_test_table(
         self,
-        test_results: List[Dict],
+        test_results: list[dict],
         caption: str = "Statistical test results",
         label: str = "tab:tests",
     ) -> str:
@@ -246,7 +245,7 @@ class AcademicReporter:
 
     def generate_effect_size_table(
         self,
-        comparisons: List[Dict],
+        comparisons: list[dict],
         caption: str = "Effect sizes for method comparisons",
         label: str = "tab:effect_sizes",
     ) -> str:
@@ -291,9 +290,7 @@ class AcademicReporter:
 
         return "\n".join(latex)
 
-    def save_publication_figure(
-        self, fig: plt.Figure, filepath: str, formats: List[str] = ["pdf", "png"]
-    ):
+    def save_publication_figure(self, fig: plt.Figure, filepath: str, formats: list[str] = None):
         """
         Save figure in publication-ready formats
 
@@ -302,6 +299,8 @@ class AcademicReporter:
             filepath: Base filepath (without extension)
             formats: List of formats to save
         """
+        if formats is None:
+            formats = ["pdf", "png"]
         filepath = Path(filepath)
         filepath.parent.mkdir(parents=True, exist_ok=True)
 
@@ -312,11 +311,11 @@ class AcademicReporter:
 
     def create_comparison_plot(
         self,
-        results: Dict[str, Dict],
+        results: dict[str, dict],
         metric: str = "mean_gap",
         ylabel: str = None,
         title: str = None,
-        save_path: Optional[str] = None,
+        save_path: str | None = None,
     ) -> plt.Figure:
         """
         Create bar plot comparing methods
@@ -342,7 +341,7 @@ class AcademicReporter:
 
         # Color bars
         colors = plt.cm.Set2(np.linspace(0, 1, len(methods)))
-        for bar, color in zip(bars, colors):
+        for bar, color in zip(bars, colors, strict=False):
             bar.set_color(color)
 
         ax.set_xticks(x)
@@ -366,10 +365,10 @@ class AcademicReporter:
 
     def create_boxplot_comparison(
         self,
-        data: Dict[str, np.ndarray],
+        data: dict[str, np.ndarray],
         ylabel: str = "Optimality Gap (%)",
         title: str = None,
-        save_path: Optional[str] = None,
+        save_path: str | None = None,
     ) -> plt.Figure:
         """
         Create boxplot comparing distributions
@@ -392,7 +391,7 @@ class AcademicReporter:
 
         # Color boxes
         colors = plt.cm.Set2(np.linspace(0, 1, len(methods)))
-        for patch, color in zip(bp["boxes"], colors):
+        for patch, color in zip(bp["boxes"], colors, strict=False):
             patch.set_facecolor(color)
             patch.set_alpha(0.7)
 
@@ -411,11 +410,11 @@ class AcademicReporter:
 
     def create_confidence_interval_plot(
         self,
-        results: Dict[str, Dict],
+        results: dict[str, dict],
         metric: str = "mean_gap",
         ylabel: str = None,
         title: str = None,
-        save_path: Optional[str] = None,
+        save_path: str | None = None,
     ) -> plt.Figure:
         """
         Create plot with confidence intervals
@@ -492,7 +491,7 @@ class AcademicReporter:
         return fig
 
     def format_statistical_summary(
-        self, comparison_result: Dict, include_latex: bool = True
+        self, comparison_result: dict, include_latex: bool = True
     ) -> str:
         """
         Format statistical test results as text
@@ -506,7 +505,7 @@ class AcademicReporter:
         """
         lines = []
         lines.append("=" * 70)
-        lines.append(f"STATISTICAL COMPARISON")
+        lines.append("STATISTICAL COMPARISON")
         lines.append("=" * 70)
 
         method_a = comparison_result.get("method_a", "Method A")
@@ -517,7 +516,7 @@ class AcademicReporter:
 
         # Descriptive statistics
         desc = comparison_result.get("descriptive", {})
-        lines.append(f"\nDescriptive Statistics:")
+        lines.append("\nDescriptive Statistics:")
         lines.append(
             f"  {method_a}: μ = {desc.get('method_a_mean', 0):.4f} ± {desc.get('method_a_std', 0):.4f}"
         )
@@ -528,7 +527,7 @@ class AcademicReporter:
         # T-test
         t_test = comparison_result.get("t_test", {})
         if t_test:
-            lines.append(f"\nPaired t-test:")
+            lines.append("\nPaired t-test:")
             lines.append(
                 f"  t = {t_test.get('t_statistic', 0):.4f}, p = {t_test.get('p_value', 1):.6f}"
             )
@@ -540,7 +539,7 @@ class AcademicReporter:
         # Wilcoxon
         wilcoxon = comparison_result.get("wilcoxon", {})
         if wilcoxon:
-            lines.append(f"\nWilcoxon signed-rank test:")
+            lines.append("\nWilcoxon signed-rank test:")
             lines.append(
                 f"  W = {wilcoxon.get('statistic', 0):.4f}, p = {wilcoxon.get('p_value', 1):.6f}"
             )
@@ -549,7 +548,7 @@ class AcademicReporter:
         # Effect size
         cohens_d = comparison_result.get("cohens_d", {})
         if cohens_d:
-            lines.append(f"\nEffect Size:")
+            lines.append("\nEffect Size:")
             lines.append(
                 f"  Cohen's d = {cohens_d.get('value', 0):.4f} ({cohens_d.get('interpretation', 'unknown')})"
             )
@@ -565,7 +564,7 @@ class AcademicReporter:
             text += "\n" + "=" * 70
             text += f"\n{method_a} achieved $\\mu = {desc.get('method_a_mean', 0):.2f}\\%$ "
             text += f"optimality gap, compared to {method_b}'s $\\mu = {desc.get('method_b_mean', 0):.2f}\\%$. "
-            text += f"A paired $t$-test showed this difference "
+            text += "A paired $t$-test showed this difference "
             if t_test.get("significant"):
                 text += f"was statistically significant ($t = {t_test.get('t_statistic', 0):.2f}$, "
                 text += f"$p < {0.001 if t_test.get('p_value', 1) < 0.001 else t_test.get('p_value', 1):.3f}$) "
@@ -575,6 +574,7 @@ class AcademicReporter:
             text += f"(Cohen's $d = {cohens_d.get('value', 0):.2f}$)."
 
         return text
+
 
 if __name__ == "__main__":
     print("Academic Reporting Module")

@@ -7,6 +7,7 @@ from torch_geometric.data import Data
 
 from knapsack_gnn.data.graph_builder import build_bipartite_graph
 
+
 class TestGraphBuilder:
     """Test suite for bipartite graph construction."""
 

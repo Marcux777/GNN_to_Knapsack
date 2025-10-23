@@ -5,13 +5,25 @@ Provides subcommands for training, evaluation, and experiments.
 """
 
 import sys
-from pathlib import Path
 
 import click
 
+from knapsack_gnn.utils.error_handler import (
+    handle_cli_errors,
+    validate_checkpoint_dir,
+)
+
+
 @click.group()
 @click.version_option(version="1.0.0")
-def main():
+@click.option(
+    "--debug",
+    is_flag=True,
+    help="Enable debug mode (show full stack traces on errors)",
+    default=False,
+)
+@click.pass_context
+def main(ctx, debug):
     """
     Knapsack GNN - Learning to Optimize.
 
@@ -21,8 +33,13 @@ def main():
         knapsack-gnn train --config experiments/configs/train_default.yaml
         knapsack-gnn eval --checkpoint checkpoints/run_001 --strategy sampling
         knapsack-gnn pipeline --config experiments/configs/pipeline.yaml
+
+    Use --debug flag to see detailed error information.
     """
-    pass
+    # Store debug flag in context for subcommands
+    ctx.ensure_object(dict)
+    ctx.obj["debug"] = debug
+
 
 @main.command()
 @click.option(
@@ -33,8 +50,12 @@ def main():
 @click.option("--epochs", type=int, help="Number of epochs (overrides config)")
 @click.option("--batch-size", type=int, help="Batch size (overrides config)")
 @click.option("--lr", type=float, help="Learning rate (overrides config)")
-def train(config, seed, device, epochs, batch_size, lr):
+@click.pass_context
+@handle_cli_errors()
+def train(ctx, config, seed, device, epochs, batch_size, lr):
     """Train a GNN model on knapsack instances."""
+    ctx.obj.get("debug", False)
+
     # Import here to avoid slow startup
     from experiments.pipelines.train_pipeline import main as train_main
 
@@ -58,6 +79,7 @@ def train(config, seed, device, epochs, batch_size, lr):
     finally:
         sys.argv = old_argv
 
+
 @main.command()
 @click.option(
     "--checkpoint", type=click.Path(exists=True), required=True, help="Path to checkpoint directory"
@@ -70,8 +92,15 @@ def train(config, seed, device, epochs, batch_size, lr):
 )
 @click.option("--device", type=str, default="cpu", help="Device (cpu/cuda)")
 @click.option("--test-only", is_flag=True, help="Evaluate only on test set")
-def eval(checkpoint, strategy, device, test_only):
+@click.pass_context
+@handle_cli_errors()
+def eval(ctx, checkpoint, strategy, device, test_only):
     """Evaluate a trained model on knapsack instances."""
+    ctx.obj.get("debug", False)
+
+    # Validate checkpoint
+    validate_checkpoint_dir(checkpoint)
+
     from experiments.pipelines.evaluate_pipeline import main as eval_main
 
     args = ["--checkpoint-dir", checkpoint, "--strategy", strategy, "--device", device]
@@ -85,6 +114,7 @@ def eval(checkpoint, strategy, device, test_only):
         eval_main()
     finally:
         sys.argv = old_argv
+
 
 @main.command()
 @click.option(
@@ -120,6 +150,7 @@ def ood(checkpoint, sizes, strategy, device):
     finally:
         sys.argv = old_argv
 
+
 @main.command()
 @click.option("--config", type=click.Path(exists=True), help="Pipeline configuration YAML")
 @click.option(
@@ -149,6 +180,7 @@ def pipeline(config, strategies, skip_train, checkpoint, seed, device):
     finally:
         sys.argv = old_argv
 
+
 @main.command()
 @click.option(
     "--mode",
@@ -174,6 +206,7 @@ def ablation(mode, config, device):
     finally:
         sys.argv = old_argv
 
+
 @main.command()
 @click.option(
     "--checkpoint", type=click.Path(exists=True), required=True, help="Checkpoint directory"
@@ -185,8 +218,15 @@ def ablation(mode, config, device):
     default=["greedy"],
     help="Baselines to compare",
 )
-def compare(checkpoint, baseline):
+@click.pass_context
+@handle_cli_errors()
+def compare(ctx, checkpoint, baseline):
     """Compare GNN with classical baselines."""
+    ctx.obj.get("debug", False)
+
+    # Validate checkpoint
+    validate_checkpoint_dir(checkpoint)
+
     from experiments.analysis.baseline_comparison import main as compare_main
 
     args = ["--checkpoint-dir", checkpoint]
@@ -200,6 +240,7 @@ def compare(checkpoint, baseline):
     finally:
         sys.argv = old_argv
 
+
 @main.command()
 @click.argument("checkpoint", type=click.Path(exists=True))
 def demo(checkpoint):
@@ -212,6 +253,7 @@ def demo(checkpoint):
         demo_main()
     finally:
         sys.argv = old_argv
+
 
 @main.command()
 @click.option(
@@ -349,6 +391,7 @@ def validate(
         validate_main()
     finally:
         sys.argv = old_argv
+
 
 if __name__ == "__main__":
     main()

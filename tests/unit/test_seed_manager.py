@@ -10,6 +10,7 @@ import torch
 
 from knapsack_gnn.training.utils import get_checkpoint_name, set_seed, validate_seed
 
+
 class TestSeedManager:
     """Test suite for seed management utilities."""
 
@@ -69,6 +70,7 @@ class TestSeedManager:
 
         with pytest.raises(ValueError):
             validate_seed(2**33)
+
 
 class TestCUDADeterminism:
     """Test CUDA-specific determinism if GPU is available."""

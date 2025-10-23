@@ -23,9 +23,9 @@ References:
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_geometric.nn import PNAConv, global_mean_pool
-from torch_geometric.data import Data, Batch
-from typing import Optional, List
+from torch_geometric.data import Batch, Data
+from torch_geometric.nn import PNAConv
+
 
 class HeterogeneousEncoder(nn.Module):
     """Heterogeneous encoder for different node types in Knapsack graphs.
@@ -63,14 +63,14 @@ class HeterogeneousEncoder(nn.Module):
             nn.Linear(item_input_dim, hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU()
+            nn.ReLU(),
         )
 
         self.constraint_encoder = nn.Sequential(
             nn.Linear(constraint_input_dim, hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU()
+            nn.ReLU(),
         )
 
     def forward(self, x: torch.Tensor, node_types: torch.Tensor) -> torch.Tensor:
@@ -94,8 +94,8 @@ class HeterogeneousEncoder(nn.Module):
             number from 1 to n_items.
         """
         # Separate item and constraint nodes
-        item_mask = (node_types == 0)
-        constraint_mask = (node_types == 1)
+        item_mask = node_types == 0
+        constraint_mask = node_types == 1
 
         # Initialize output tensor
         h = torch.zeros(x.size(0), self.item_encoder[0].out_features, device=x.device)
@@ -109,6 +109,7 @@ class HeterogeneousEncoder(nn.Module):
             h[constraint_mask] = self.constraint_encoder(x[constraint_mask, :1])
 
         return h
+
 
 class KnapsackPNA(nn.Module):
     """PNA-based Graph Neural Network for the 0-1 Knapsack Problem.
@@ -141,15 +142,17 @@ class KnapsackPNA(nn.Module):
         Corso et al. "Principal Neighbourhood Aggregation for Graph Nets" (NeurIPS 2020)
     """
 
-    def __init__(self,
-                 item_input_dim: int = 2,
-                 constraint_input_dim: int = 1,
-                 hidden_dim: int = 64,
-                 num_layers: int = 3,
-                 dropout: float = 0.1,
-                 aggregators: List[str] = ['mean', 'max', 'min', 'std'],
-                 scalers: List[str] = ['identity', 'amplification', 'attenuation'],
-                 deg: Optional[torch.Tensor] = None):
+    def __init__(
+        self,
+        item_input_dim: int = 2,
+        constraint_input_dim: int = 1,
+        hidden_dim: int = 64,
+        num_layers: int = 3,
+        dropout: float = 0.1,
+        aggregators: list[str] = None,
+        scalers: list[str] = None,
+        deg: torch.Tensor | None = None,
+    ):
         """Initialize the KnapsackPNA model.
 
         Args:
@@ -171,6 +174,10 @@ class KnapsackPNA(nn.Module):
             and computational cost. For smaller problems, reducing aggregators/scalers can
             speed up training.
         """
+        if scalers is None:
+            scalers = ["identity", "amplification", "attenuation"]
+        if aggregators is None:
+            aggregators = ["mean", "max", "min", "std"]
         super().__init__()
 
         self.hidden_dim = hidden_dim
@@ -192,7 +199,7 @@ class KnapsackPNA(nn.Module):
                 towers=1,
                 pre_layers=1,
                 post_layers=1,
-                divide_input=False
+                divide_input=False,
             )
             self.convs.append(conv)
 
@@ -208,7 +215,7 @@ class KnapsackPNA(nn.Module):
             nn.ReLU(),
             nn.Dropout(dropout),
             nn.Linear(hidden_dim // 2, 1),
-            nn.Sigmoid()  # Output probabilities in [0, 1]
+            nn.Sigmoid(),  # Output probabilities in [0, 1]
         )
 
     def forward(self, data: Data) -> torch.Tensor:
@@ -239,7 +246,7 @@ class KnapsackPNA(nn.Module):
                 h = h_new
 
         # 3. Decode item probabilities (only for item nodes)
-        item_mask = (node_types == 0)
+        item_mask = node_types == 0
         item_embeddings = h[item_mask]
 
         # Get probabilities for each item
@@ -261,6 +268,7 @@ class KnapsackPNA(nn.Module):
         probs = self.forward(data)
         return (probs >= threshold).float()
 
+
 def compute_degree_histogram(dataset, max_degree: int = 100) -> torch.Tensor:
     """
     Compute degree histogram for PNA normalization
@@ -279,9 +287,10 @@ def compute_degree_histogram(dataset, max_degree: int = 100) -> torch.Tensor:
     for data in dataset:
         # Compute in-degrees
         d = degree(data.edge_index[1], num_nodes=data.x.size(0), dtype=torch.long)
-        deg_histogram += torch.bincount(d, minlength=deg_histogram.numel())[:max_degree + 1]
+        deg_histogram += torch.bincount(d, minlength=deg_histogram.numel())[: max_degree + 1]
 
     return deg_histogram.float()
+
 
 class KnapsackPNAWithBatch(KnapsackPNA):
     """
@@ -316,7 +325,7 @@ class KnapsackPNAWithBatch(KnapsackPNA):
                 h = h_new
 
         # 3. Decode item probabilities (only for item nodes)
-        item_mask = (node_types == 0)
+        item_mask = node_types == 0
         item_embeddings = h[item_mask]
 
         # Get probabilities for each item
@@ -324,10 +333,10 @@ class KnapsackPNAWithBatch(KnapsackPNA):
 
         return probs
 
-def create_model(dataset,
-                hidden_dim: int = 64,
-                num_layers: int = 3,
-                dropout: float = 0.1) -> KnapsackPNA:
+
+def create_model(
+    dataset, hidden_dim: int = 64, num_layers: int = 3, dropout: float = 0.1
+) -> KnapsackPNA:
     """
     Factory function to create KnapsackPNA model with computed degree histogram
 
@@ -350,16 +359,17 @@ def create_model(dataset,
         hidden_dim=hidden_dim,
         num_layers=num_layers,
         dropout=dropout,
-        deg=deg
+        deg=deg,
     )
 
     print(f"Model created with {sum(p.numel() for p in model.parameters())} parameters")
     return model
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # Example usage
-    from data.knapsack_generator import KnapsackGenerator, KnapsackSolver
     from data.graph_builder import KnapsackGraphBuilder
+    from data.knapsack_generator import KnapsackGenerator, KnapsackSolver
 
     print("Creating sample instance...")
     generator = KnapsackGenerator(seed=42)

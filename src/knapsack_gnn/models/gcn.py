@@ -6,9 +6,9 @@ Simpler alternative to PNA using Graph Convolutional Networks
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_geometric.nn import GCNConv
 from torch_geometric.data import Data
-from typing import Optional
+from torch_geometric.nn import GCNConv
+
 
 class HeterogeneousEncoder(nn.Module):
     """
@@ -23,20 +23,20 @@ class HeterogeneousEncoder(nn.Module):
             nn.Linear(item_input_dim, hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU()
+            nn.ReLU(),
         )
 
         self.constraint_encoder = nn.Sequential(
             nn.Linear(constraint_input_dim, hidden_dim),
             nn.ReLU(),
             nn.Linear(hidden_dim, hidden_dim),
-            nn.ReLU()
+            nn.ReLU(),
         )
 
     def forward(self, x: torch.Tensor, node_types: torch.Tensor) -> torch.Tensor:
         """Encode node features based on their types"""
-        item_mask = (node_types == 0)
-        constraint_mask = (node_types == 1)
+        item_mask = node_types == 0
+        constraint_mask = node_types == 1
 
         h = torch.zeros(x.size(0), self.item_encoder[0].out_features, device=x.device)
 
@@ -48,6 +48,7 @@ class HeterogeneousEncoder(nn.Module):
 
         return h
 
+
 class KnapsackGCN(nn.Module):
     """
     GCN-based GNN for Knapsack Problem
@@ -58,12 +59,14 @@ class KnapsackGCN(nn.Module):
     3. Decoding to item selection probabilities
     """
 
-    def __init__(self,
-                 item_input_dim: int = 2,
-                 constraint_input_dim: int = 1,
-                 hidden_dim: int = 64,
-                 num_layers: int = 3,
-                 dropout: float = 0.1):
+    def __init__(
+        self,
+        item_input_dim: int = 2,
+        constraint_input_dim: int = 1,
+        hidden_dim: int = 64,
+        num_layers: int = 3,
+        dropout: float = 0.1,
+    ):
         """
         Args:
             item_input_dim: Input dimension for item features (default: 2)
@@ -88,7 +91,7 @@ class KnapsackGCN(nn.Module):
                 out_channels=hidden_dim,
                 improved=True,  # Use improved GCN with self-loops
                 cached=False,
-                normalize=True
+                normalize=True,
             )
             self.convs.append(conv)
 
@@ -104,7 +107,7 @@ class KnapsackGCN(nn.Module):
             nn.ReLU(),
             nn.Dropout(dropout),
             nn.Linear(hidden_dim // 2, 1),
-            nn.Sigmoid()
+            nn.Sigmoid(),
         )
 
     def forward(self, data: Data) -> torch.Tensor:
@@ -135,7 +138,7 @@ class KnapsackGCN(nn.Module):
                 h = h_new
 
         # 3. Decode item probabilities (only for item nodes)
-        item_mask = (node_types == 0)
+        item_mask = node_types == 0
         item_embeddings = h[item_mask]
 
         # Get probabilities for each item
@@ -157,9 +160,10 @@ class KnapsackGCN(nn.Module):
         probs = self.forward(data)
         return (probs >= threshold).float()
 
-def create_gcn_model(hidden_dim: int = 64,
-                     num_layers: int = 3,
-                     dropout: float = 0.1) -> KnapsackGCN:
+
+def create_gcn_model(
+    hidden_dim: int = 64, num_layers: int = 3, dropout: float = 0.1
+) -> KnapsackGCN:
     """
     Factory function to create KnapsackGCN model
 
@@ -177,16 +181,17 @@ def create_gcn_model(hidden_dim: int = 64,
         constraint_input_dim=1,
         hidden_dim=hidden_dim,
         num_layers=num_layers,
-        dropout=dropout
+        dropout=dropout,
     )
 
     print(f"Model created with {sum(p.numel() for p in model.parameters())} parameters")
     return model
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     # Example usage
-    from data.knapsack_generator import KnapsackGenerator, KnapsackSolver
     from data.graph_builder import KnapsackGraphBuilder
+    from data.knapsack_generator import KnapsackGenerator, KnapsackSolver
 
     print("Creating sample instance...")
     generator = KnapsackGenerator(seed=42)

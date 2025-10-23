@@ -47,6 +47,15 @@ repos:
       - id: mixed-line-ending
         args: [--fix=lf]
 
+  # Commit message linting (Conventional Commits)
+  - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
+    rev: v9.5.0
+    hooks:
+      - id: commitlint
+        name: commitlint (conventional commits)
+        stages: [commit-msg]
+        additional_dependencies: ['@commitlint/config-conventional']
+
   # ============================================================================
   # Pre-push stage: Heavier checks (type checking, tests, dependency sync)
   # ============================================================================

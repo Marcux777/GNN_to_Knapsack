@@ -1,0 +1,112 @@
+# Commitlint configuration for Conventional Commits
+# See: https://www.conventionalcommits.org/
+#
+# Commit message format:
+#   <type>(<scope>): <subject>
+#
+# Types:
+#   feat:     New feature
+#   fix:      Bug fix
+#   docs:     Documentation changes
+#   style:    Code formatting (no logic changes)
+#   refactor: Code refactoring
+#   perf:     Performance improvements
+#   test:     Adding or updating tests
+#   build:    Build system or dependencies
+#   ci:       CI/CD configuration
+#   chore:    Maintenance tasks
+#   revert:   Reverting previous commits
+#
+# Examples:
+#   feat(models): add PNA architecture support
+#   fix(decoder): handle empty solution edge case
+#   docs: update installation instructions
+#   refactor(training): simplify loss calculation
+#   test(data): add edge case tests for knapsack generation
+
+extends:
+  - "@commitlint/config-conventional"
+
+rules:
+  # Type enum: allowed commit types
+  type-enum:
+    - 2  # error level
+    - always
+    - - feat       # New feature
+      - fix        # Bug fix
+      - docs       # Documentation
+      - style      # Formatting, no code change
+      - refactor   # Code change that neither fixes a bug nor adds a feature
+      - perf       # Performance improvement
+      - test       # Adding or updating tests
+      - build      # Build system or dependencies
+      - ci         # CI/CD configuration
+      - chore      # Maintenance
+      - revert     # Revert previous commit
+
+  # Type case: lowercase
+  type-case:
+    - 2
+    - always
+    - lower-case
+
+  # Type must not be empty
+  type-empty:
+    - 2
+    - never
+
+  # Scope case: lowercase
+  scope-case:
+    - 2
+    - always
+    - lower-case
+
+  # Scope enum: optional but recommended scopes
+  scope-enum:
+    - 1  # warning level (not enforced)
+    - always
+    - - models       # GNN architectures (GCN, GAT, PNA)
+      - data         # Data generation and loading
+      - training     # Training loop and optimization
+      - decoder      # Solution decoding strategies
+      - eval         # Evaluation and metrics
+      - analysis     # Analysis and reporting
+      - cli          # Command-line interface
+      - config       # Configuration files
+      - utils        # Utility functions
+      - deps         # Dependencies
+      - docs         # Documentation
+
+  # Subject case: sentence-case or lower-case
+  subject-case:
+    - 2
+    - always
+    - - sentence-case
+      - lower-case
+
+  # Subject must not be empty
+  subject-empty:
+    - 2
+    - never
+
+  # Subject must not end with period
+  subject-full-stop:
+    - 2
+    - never
+    - "."
+
+  # Header max length: 100 characters
+  header-max-length:
+    - 2
+    - always
+    - 100
+
+  # Body leading blank: body must start with blank line
+  body-leading-blank:
+    - 1  # warning
+    - always
+
+  # Footer leading blank: footer must start with blank line
+  footer-leading-blank:
+    - 1  # warning
+    - always

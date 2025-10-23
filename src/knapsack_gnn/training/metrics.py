@@ -5,7 +5,7 @@ Pure functions with no side effects - suitable for library use.
 """
 
 import numpy as np
-from typing import Dict, Tuple
+
 
 def compute_optimality_gap(predicted_value: float, optimal_value: float) -> float:
     """
@@ -26,6 +26,7 @@ def compute_optimality_gap(predicted_value: float, optimal_value: float) -> floa
         return 0.0 if predicted_value == 0 else 100.0
     return (optimal_value - predicted_value) / optimal_value * 100.0
 
+
 def compute_accuracy(predicted_solution: np.ndarray, optimal_solution: np.ndarray) -> float:
     """
     Compute binary accuracy between solutions.
@@ -45,9 +46,10 @@ def compute_accuracy(predicted_solution: np.ndarray, optimal_solution: np.ndarra
     """
     return float(np.mean(predicted_solution == optimal_solution))
 
+
 def compute_precision_recall_f1(
     predicted_solution: np.ndarray, optimal_solution: np.ndarray
-) -> Tuple[float, float, float]:
+) -> tuple[float, float, float]:
     """
     Compute precision, recall, and F1 score.
 
@@ -79,6 +81,7 @@ def compute_precision_recall_f1(
 
     return precision, recall, f1
 
+
 def evaluate_solution(
     predicted_solution: np.ndarray,
     optimal_solution: np.ndarray,
@@ -86,7 +89,7 @@ def evaluate_solution(
     optimal_value: float,
     weights: np.ndarray,
     capacity: float,
-) -> Dict[str, float]:
+) -> dict[str, float]:
     """
     Comprehensive solution evaluation.
 
@@ -138,7 +141,8 @@ def evaluate_solution(
         "optimal_value": float(optimal_value),
     }
 
-def compute_solution_stats(metrics_list: list[Dict]) -> Dict[str, float]:
+
+def compute_solution_stats(metrics_list: list[dict]) -> dict[str, float]:
     """
     Aggregate metrics across multiple solutions.
 

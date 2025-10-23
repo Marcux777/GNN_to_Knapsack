@@ -13,24 +13,24 @@ Usage:
 """
 
 import argparse
-import os
 import sys
-import torch
-import numpy as np
 from pathlib import Path
-from typing import Dict, List
+
+import numpy as np
+import torch
 
 # Add parent to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+from knapsack_gnn.analysis.reporting import AcademicReporter
+from knapsack_gnn.analysis.stats import StatisticalAnalyzer
+from knapsack_gnn.analysis.validation import PublicationValidator
 from knapsack_gnn.data.generator import KnapsackDataset
 from knapsack_gnn.data.graph_builder import KnapsackGraphDataset
+from knapsack_gnn.decoding.sampling import evaluate_model
 from knapsack_gnn.models.pna import create_model
-from knapsack_gnn.decoding.sampling import evaluate_model, KnapsackSampler
 from knapsack_gnn.training.loop import train_model
-from knapsack_gnn.analysis.validation import PublicationValidator
-from knapsack_gnn.analysis.stats import StatisticalAnalyzer
-from knapsack_gnn.analysis.reporting import AcademicReporter
+
 
 def parse_args():
     """Parse command-line arguments"""
@@ -94,6 +94,7 @@ def parse_args():
 
     return parser.parse_args()
 
+
 def load_model_and_data(checkpoint_path: str, data_dir: str, device: str):
     """Load trained model and datasets"""
     print("\n" + "=" * 70)
@@ -136,6 +137,7 @@ def load_model_and_data(checkpoint_path: str, data_dir: str, device: str):
         test_graph_dataset,
     )
 
+
 def evaluate_gnn(model, test_graph_dataset, strategy: str, n_samples: int, device: str):
     """Evaluate GNN model"""
     print("\n" + "=" * 70)
@@ -150,13 +152,14 @@ def evaluate_gnn(model, test_graph_dataset, strategy: str, n_samples: int, devic
         model=model, dataset=test_graph_dataset, strategy=strategy, device=device, **strategy_kwargs
     )
 
-    print(f"\nGNN Results:")
+    print("\nGNN Results:")
     print(f"  Mean Gap: {results['mean_gap']:.4f}%")
     print(f"  Median Gap: {results['median_gap']:.4f}%")
     print(f"  Std Gap: {results['std_gap']:.4f}%")
     print(f"  Feasibility: {results['feasibility_rate'] * 100:.2f}%")
 
     return np.array(results["gaps"])
+
 
 def main():
     """Main validation pipeline"""
@@ -171,7 +174,7 @@ def main():
     print("=" * 70)
     print("PUBLICATION-GRADE VALIDATION PIPELINE")
     print("=" * 70)
-    print(f"\nConfiguration:")
+    print("\nConfiguration:")
     for arg, value in vars(args).items():
         print(f"  {arg}: {value}")
 
@@ -254,7 +257,7 @@ def main():
 
         config = {"epochs": 30, "batch_size": 32, "lr": 0.002}
 
-        cv_results = validator.run_cross_validation(
+        validator.run_cross_validation(
             train_fn=train_fn,
             evaluate_fn=eval_fn,
             dataset=train_dataset,  # Use training data for CV
@@ -278,7 +281,7 @@ def main():
         effect_size = comparison["cohens_d"]["value"]
         sample_size = comparison["n_samples"]
 
-        power_results = validator.run_power_analysis(
+        validator.run_power_analysis(
             observed_effect_size=abs(effect_size),
             current_sample_size=sample_size,
             desired_power=0.8,
@@ -317,18 +320,14 @@ def main():
                 method_results["Random"] = gaps
 
         if len(method_results) >= 3:
-            multiple_comparison = validator.compare_multiple_methods(
-                method_results=method_results, verbose=True
-            )
+            validator.compare_multiple_methods(method_results=method_results, verbose=True)
 
     # ===== STEP 6: Generate Report =====
     print("\n" + "=" * 70)
     print("STEP 6: GENERATING VALIDATION REPORT")
     print("=" * 70)
 
-    report_path = validator.generate_validation_report(
-        include_latex=args.latex, include_figures=args.figures
-    )
+    validator.generate_validation_report(include_latex=args.latex, include_figures=args.figures)
 
     # ===== STEP 7: Generate Figures =====
     if args.figures:
@@ -340,7 +339,7 @@ def main():
 
         # Box plot comparison
         if "Greedy" in method_results and "Random" in method_results:
-            fig = reporter.create_boxplot_comparison(
+            reporter.create_boxplot_comparison(
                 data=method_results,
                 ylabel="Optimality Gap (%)",
                 title="Method Comparison",
@@ -355,7 +354,7 @@ def main():
             ci = analyzer.bootstrap_ci(gaps)
             summary_results[method] = {"mean": np.mean(gaps), "ci_95": ci}
 
-        fig = reporter.create_confidence_interval_plot(
+        reporter.create_confidence_interval_plot(
             results=summary_results,
             ylabel="Optimality Gap (%)",
             title="Mean Gap with 95% Confidence Intervals",
@@ -368,15 +367,15 @@ def main():
     print("VALIDATION COMPLETED")
     print("=" * 70)
     print(f"\nAll results saved to: {output_dir}")
-    print(f"\nGenerated files:")
-    print(f"  - validation_results.json")
-    print(f"  - validation_report.txt")
+    print("\nGenerated files:")
+    print("  - validation_results.json")
+    print("  - validation_report.txt")
     if args.latex:
-        print(f"  - baseline_comparison_table.tex")
-        print(f"  - statistical_tests_table.tex")
+        print("  - baseline_comparison_table.tex")
+        print("  - statistical_tests_table.tex")
     if args.figures:
-        print(f"  - method_comparison.pdf")
-        print(f"  - confidence_intervals.pdf")
+        print("  - method_comparison.pdf")
+        print("  - confidence_intervals.pdf")
 
     print("\n" + "=" * 70)
     print("SUMMARY OF KEY FINDINGS")
@@ -384,7 +383,7 @@ def main():
 
     # Print key findings
     if baseline_comparisons:
-        print(f"\n✓ Baseline Comparisons:")
+        print("\n✓ Baseline Comparisons:")
         for baseline, comp in baseline_comparisons.items():
             sig = "✓ SIGNIFICANT" if comp["t_test"]["significant"] else "✗ NOT SIGNIFICANT"
             print(f"  - GNN vs {baseline}: {sig} (p={comp['t_test']['p_value']:.6f})")
@@ -400,7 +399,7 @@ def main():
 
     if args.check_power and "power_analysis" in validator.results:
         pa = validator.results["power_analysis"]
-        print(f"\n✓ Statistical Power:")
+        print("\n✓ Statistical Power:")
         if pa["achieved_power"]:
             print(f"  Achieved power: {pa['achieved_power']:.3f}")
         if pa["sample_size_adequate"] is not None:
@@ -408,6 +407,7 @@ def main():
             print(f"  Sample size: {status}")
 
     print("\n" + "=" * 70)
+
 
 if __name__ == "__main__":
     main()

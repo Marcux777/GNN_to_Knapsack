@@ -9,6 +9,7 @@ import logging
 import sys
 from pathlib import Path
 
+
 def setup_logger(
     name: str = "knapsack_gnn",
     log_file: Path | None = None,
@@ -72,6 +73,7 @@ def setup_logger(
 
     return logger
 
+
 def get_logger(name: str = "knapsack_gnn") -> logging.Logger:
     """
     Get an existing logger or create a basic one.
@@ -94,6 +96,7 @@ def get_logger(name: str = "knapsack_gnn") -> logging.Logger:
         logger = setup_logger(name, log_file=None, console_output=True)
 
     return logger
+
 
 def log_experiment_config(
     logger: logging.Logger, config: dict, title: str = "Experiment Configuration"
@@ -119,6 +122,7 @@ def log_experiment_config(
         logger.info(f"  {key:.<30} {value}")
 
     logger.info("=" * 60)
+
 
 def log_metrics(
     logger: logging.Logger, metrics: dict, prefix: str = "", precision: int = 4

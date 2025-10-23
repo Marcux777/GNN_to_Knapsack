@@ -98,10 +98,91 @@ These numbers come from `make pipeline PIPELINE_STRATEGIES="sampling warm_start"
 ![Sampling gap histogram](checkpoints/run_20251020_104533/evaluation/gaps_sampling.png)
 ![Warm-start gap histogram](checkpoints/run_20251020_104533/evaluation/gaps_warm_start.png)
 
+## 🔄 Reproducibility
+
+**Publication-Grade Reproducibility:** All experiments are fully reproducible with comprehensive tracking.
+
+### Quick Start - Reproduce Results
+
+```bash
+# 1. Download pre-trained checkpoint
+make download-checkpoint RUN=run_20251020_104533
+
+# 2. Reproduce evaluation results
+make evaluate CHECKPOINT_DIR=checkpoints/run_20251020_104533 TEST_ONLY=1
+
+# 3. Verify reproducibility
+make verify-reproducibility CHECKPOINT_DIR=checkpoints/run_20251020_104533
+```
+
+### Features
+
+- ✅ **Automatic Seed Management**: Centralized `set_seed()` for Python, NumPy, PyTorch, CUDA
+- ✅ **Config Validation**: Pydantic schemas validate all YAML configs
+- ✅ **Checkpoint Metadata**: Every checkpoint saves config, environment, git state, hardware info
+- ✅ **Artifact Management**: Download checkpoints from GitHub Releases or Zenodo
+- ✅ **Config Versioning**: Track changes in `CHANGELOG_CONFIGS.md`
+
+### Documentation
+
+- 📖 [Reproducibility Guide](docs/guides/reproducibility.md) - Complete guide
+- ✓ [Reproducibility Checklist](docs/checklists/reproducibility_checklist.md) - Verification steps
+- 📝 [Config Changelog](CHANGELOG_CONFIGS.md) - Configuration history
+
+See full [Reproducibility Guide](docs/guides/reproducibility.md) for details.
+
 **Validated through:**
 - ✅ Out-of-distribution generalization tests (100–200 items, new pipeline still supports OOD runs)
 - ✅ Baseline comparisons (Greedy, Random) from earlier study remain included for reference
 - ✅ Feature and architecture ablations (PNA, GCN, GAT) still reproducible via `ablation_study.py`
+
+---
+
+## 🔌 Extensibility
+
+**Highly Modular Architecture:** Easily extend to new models, decoders, and optimization problems.
+
+### Quick Examples
+
+**Add New GNN Architecture:**
+```python
+from combo_opt.core import AbstractGNNModel, ModelRegistry
+
+@ModelRegistry.register("transformer_gnn")
+class TransformerGNN(AbstractGNNModel):
+    def forward(self, data):
+        # Your implementation
+        pass
+```
+
+**Create Custom Decoder:**
+```python
+from combo_opt.core import AbstractDecoder
+
+class BeamSearchDecoder(AbstractDecoder):
+    def decode(self, model_output, problem_data):
+        # Beam search implementation
+        pass
+```
+
+**Adapt to New Problem (e.g., TSP):**
+```python
+from combo_opt.core import OptimizationProblem
+
+class TSPProblem(OptimizationProblem):
+    def to_graph(self, instance):
+        # Convert TSP to graph
+        pass
+```
+
+### Resources
+
+- 📓 **[Interactive Notebooks](notebooks/)** - Quickstart, training demos, custom architectures
+- 📖 **[Developer Guides](docs/dev/)** - Extending models, decoders, porting to other problems
+- 🎓 **[Tutorials](docs/tutorials/)** - Step-by-step walkthroughs
+- 📋 **[Code Templates](templates/)** - Ready-to-use templates for models, decoders, problems
+
+**See [EXTENSIBILITY_SUMMARY.md](EXTENSIBILITY_SUMMARY.md) for complete documentation.**
 
 ---
 

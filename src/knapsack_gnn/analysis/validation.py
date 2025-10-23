@@ -19,19 +19,20 @@ Usage:
     )
 """
 
-import numpy as np
-import torch
-from typing import Dict, List, Optional, Tuple, Callable, Any
-from pathlib import Path
 import json
 import warnings
+from collections.abc import Callable
 from datetime import datetime
+from pathlib import Path
 
-from knapsack_gnn.analysis.stats import StatisticalAnalyzer
-from knapsack_gnn.analysis.cross_validation import KFoldValidator, LeaveOneSizeOutValidator
+import numpy as np
+
+from knapsack_gnn.analysis.cross_validation import KFoldValidator
 from knapsack_gnn.analysis.reporting import AcademicReporter
-from knapsack_gnn.data.generator import KnapsackDataset
+from knapsack_gnn.analysis.stats import StatisticalAnalyzer
 from knapsack_gnn.baselines.greedy import GreedySolver, RandomSolver
+from knapsack_gnn.data.generator import KnapsackDataset
+
 
 class PublicationValidator:
     """
@@ -78,10 +79,10 @@ class PublicationValidator:
         self,
         gnn_gaps: np.ndarray,
         dataset: KnapsackDataset,
-        baselines: List[str] = ["greedy", "random"],
+        baselines: list[str] = None,
         gnn_name: str = "GNN",
         verbose: bool = True,
-    ) -> Dict:
+    ) -> dict:
         """
         Compare GNN against baseline methods with rigorous statistics
 
@@ -95,6 +96,8 @@ class PublicationValidator:
         Returns:
             Dictionary with comparison results
         """
+        if baselines is None:
+            baselines = ["greedy", "random"]
         if verbose:
             print("\n" + "=" * 70)
             print("BASELINE COMPARISON WITH STATISTICAL VALIDATION")
@@ -126,7 +129,7 @@ class PublicationValidator:
                 )
 
             else:
-                warnings.warn(f"Unknown baseline: {baseline_name}")
+                warnings.warn(f"Unknown baseline: {baseline_name}", stacklevel=2)
                 continue
 
             baseline_gaps[baseline_name] = gaps
@@ -185,7 +188,7 @@ class PublicationValidator:
         method_b: np.ndarray,
         method_a_name: str = "Method A",
         method_b_name: str = "Method B",
-    ) -> Dict:
+    ) -> dict:
         """
         Check assumptions for parametric tests
 
@@ -234,12 +237,12 @@ class PublicationValidator:
         train_fn: Callable,
         evaluate_fn: Callable,
         dataset: KnapsackDataset,
-        config: Dict,
+        config: dict,
         n_folds: int = 5,
         stratify: bool = True,
         device: str = "cpu",
         verbose: bool = True,
-    ) -> Dict:
+    ) -> dict:
         """
         Run k-fold cross-validation
 
@@ -293,7 +296,7 @@ class PublicationValidator:
         current_sample_size: int,
         desired_power: float = 0.8,
         verbose: bool = True,
-    ) -> Dict:
+    ) -> dict:
         """
         Perform statistical power analysis
 
@@ -357,8 +360,8 @@ class PublicationValidator:
         return results
 
     def compare_multiple_methods(
-        self, method_results: Dict[str, np.ndarray], verbose: bool = True
-    ) -> Dict:
+        self, method_results: dict[str, np.ndarray], verbose: bool = True
+    ) -> dict:
         """
         Compare multiple methods using Friedman test
 
@@ -370,7 +373,7 @@ class PublicationValidator:
             Comparison results
         """
         if len(method_results) < 3:
-            warnings.warn("Friedman test requires at least 3 methods")
+            warnings.warn("Friedman test requires at least 3 methods", stacklevel=2)
             return {}
 
         if verbose:
@@ -400,7 +403,9 @@ class PublicationValidator:
         holm_correction = self.stats_analyzer.holm_correction(p_values, alpha=self.alpha)
 
         # Update comparisons with corrected significance
-        for comp, significant in zip(pairwise_comparisons, holm_correction["significant"]):
+        for comp, significant in zip(
+            pairwise_comparisons, holm_correction["significant"], strict=False
+        ):
             comp["significant_corrected"] = significant
 
         results = {
@@ -413,15 +418,15 @@ class PublicationValidator:
         self._save_results()
 
         if verbose:
-            print(f"\nFriedman Test:")
+            print("\nFriedman Test:")
             print(f"  Statistic: {friedman_result['statistic']:.3f}")
             print(f"  p-value: {friedman_result['p_value']:.6f}")
             print(f"  Significant: {'YES' if friedman_result['significant'] else 'NO'}")
-            print(f"\nMean Ranks:")
-            for method, rank in zip(methods, friedman_result["mean_ranks"]):
+            print("\nMean Ranks:")
+            for method, rank in zip(methods, friedman_result["mean_ranks"], strict=False):
                 print(f"  {method}: {rank:.2f}")
 
-            print(f"\nPairwise Comparisons (Holm-corrected):")
+            print("\nPairwise Comparisons (Holm-corrected):")
             for comp in pairwise_comparisons:
                 sig = "✓" if comp["significant_corrected"] else "✗"
                 print(f"  {comp['method_a']} vs {comp['method_b']}: p={comp['p_value']:.4f} {sig}")
@@ -504,8 +509,8 @@ class PublicationValidator:
         self,
         gnn_name: str,
         gnn_gaps: np.ndarray,
-        baseline_gaps: Dict[str, np.ndarray],
-        comparison_results: Dict,
+        baseline_gaps: dict[str, np.ndarray],
+        comparison_results: dict,
     ):
         """Generate LaTeX tables for baseline comparison"""
         # Comparison table
@@ -569,7 +574,7 @@ class PublicationValidator:
         def convert(obj):
             if isinstance(obj, np.ndarray):
                 return obj.tolist()
-            if isinstance(obj, (np.integer, np.floating)):
+            if isinstance(obj, np.integer | np.floating):
                 return float(obj)
             return obj
 
@@ -577,6 +582,7 @@ class PublicationValidator:
 
         with open(results_path, "w") as f:
             json.dump(serializable, f, indent=2)
+
 
 if __name__ == "__main__":
     print("Publication Validator Module")

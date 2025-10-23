@@ -14,16 +14,14 @@ Usage:
     cv_results = validator.validate(model_class, dataset, config)
 """
 
-import numpy as np
-import torch
-from typing import Dict, List, Tuple, Optional, Callable, Any
+from collections.abc import Callable
 from dataclasses import dataclass
-import warnings
-from pathlib import Path
 
-from knapsack_gnn.data.generator import KnapsackDataset
-from knapsack_gnn.data.graph_builder import KnapsackGraphDataset
+import numpy as np
+
 from knapsack_gnn.analysis.stats import StatisticalAnalyzer
+from knapsack_gnn.data.generator import KnapsackDataset
+
 
 @dataclass
 class CVFold:
@@ -32,16 +30,17 @@ class CVFold:
     fold_id: int
     train_indices: np.ndarray
     val_indices: np.ndarray
-    test_indices: Optional[np.ndarray] = None
+    test_indices: np.ndarray | None = None
+
 
 @dataclass
 class CVResults:
     """Results from cross-validation"""
 
-    fold_results: List[Dict]
+    fold_results: list[dict]
     mean_gap: float
     std_gap: float
-    ci_95: Tuple[float, float]
+    ci_95: tuple[float, float]
     mean_train_loss: float
     mean_val_loss: float
     best_fold_id: int
@@ -58,6 +57,7 @@ class CVResults:
             f"  Best Fold: {self.best_fold_id} ({self.fold_results[self.best_fold_id]['gap']:.4f}%)\n"
             f"  Worst Fold: {self.worst_fold_id} ({self.fold_results[self.worst_fold_id]['gap']:.4f}%)"
         )
+
 
 class KFoldValidator:
     """
@@ -90,8 +90,8 @@ class KFoldValidator:
         self.rng = np.random.RandomState(random_state)
 
     def create_folds(
-        self, dataset: KnapsackDataset, test_size: Optional[float] = None
-    ) -> List[CVFold]:
+        self, dataset: KnapsackDataset, test_size: float | None = None
+    ) -> list[CVFold]:
         """
         Create k-fold splits
 
@@ -146,7 +146,7 @@ class KFoldValidator:
 
         return cv_folds
 
-    def _standard_kfold(self, indices: np.ndarray) -> List[Tuple[np.ndarray, np.ndarray]]:
+    def _standard_kfold(self, indices: np.ndarray) -> list[tuple[np.ndarray, np.ndarray]]:
         """Standard k-fold split"""
         n_instances = len(indices)
         fold_size = n_instances // self.n_splits
@@ -165,7 +165,7 @@ class KFoldValidator:
 
     def _stratified_kfold(
         self, indices: np.ndarray, bin_assignments: np.ndarray
-    ) -> List[Tuple[np.ndarray, np.ndarray]]:
+    ) -> list[tuple[np.ndarray, np.ndarray]]:
         """Stratified k-fold split"""
         folds = [[] for _ in range(self.n_splits)]
 
@@ -200,7 +200,7 @@ class KFoldValidator:
         train_fn: Callable,
         evaluate_fn: Callable,
         dataset: KnapsackDataset,
-        config: Dict,
+        config: dict,
         device: str = "cpu",
         verbose: bool = True,
     ) -> CVResults:
@@ -293,6 +293,7 @@ class KFoldValidator:
 
         return results
 
+
 class LeaveOneSizeOutValidator:
     """
     Leave-One-Size-Out Cross-Validation
@@ -308,7 +309,7 @@ class LeaveOneSizeOutValidator:
         """
         self.random_state = random_state
 
-    def create_folds(self, dataset: KnapsackDataset) -> List[CVFold]:
+    def create_folds(self, dataset: KnapsackDataset) -> list[CVFold]:
         """
         Create leave-one-size-out folds
 
@@ -342,7 +343,7 @@ class LeaveOneSizeOutValidator:
         train_fn: Callable,
         evaluate_fn: Callable,
         dataset: KnapsackDataset,
-        config: Dict,
+        config: dict,
         device: str = "cpu",
         verbose: bool = True,
     ) -> CVResults:
@@ -357,7 +358,7 @@ class LeaveOneSizeOutValidator:
         sizes = np.array([inst.n_items for inst in dataset.instances])
         unique_sizes = np.unique(sizes)
 
-        for fold, size in zip(folds, unique_sizes):
+        for fold, size in zip(folds, unique_sizes, strict=False):
             if verbose:
                 print(f"\n{'=' * 70}")
                 print(f"Leave-out size: {size} items")
@@ -428,6 +429,7 @@ class LeaveOneSizeOutValidator:
 
         return results
 
+
 class NestedCVValidator:
     """
     Nested Cross-Validation for Hyperparameter Selection
@@ -454,11 +456,11 @@ class NestedCVValidator:
         train_fn: Callable,
         evaluate_fn: Callable,
         dataset: KnapsackDataset,
-        hyperparameter_configs: List[Dict],
-        base_config: Dict,
+        hyperparameter_configs: list[dict],
+        base_config: dict,
         device: str = "cpu",
         verbose: bool = True,
-    ) -> Dict:
+    ) -> dict:
         """
         Run nested cross-validation
 
@@ -605,7 +607,7 @@ class NestedCVValidator:
 
         return results
 
-    def _most_common_config(self, configs: List[Dict]) -> Dict:
+    def _most_common_config(self, configs: list[dict]) -> dict:
         """Find most frequently selected configuration"""
         # Convert configs to hashable format
         config_strs = [str(sorted(c.items())) for c in configs]
@@ -622,6 +624,7 @@ class NestedCVValidator:
                 return c
 
         return configs[0]  # Fallback
+
 
 if __name__ == "__main__":
     print("Cross-Validation Module")

@@ -184,8 +184,8 @@ site_dir: site
 watch:
   - src/knapsack_gnn
 
-# Strict mode (fail on warnings)
-strict: true
+# Strict mode (fail on warnings) - disabled for local builds, enabled in CI
+strict: false
 
 # Copyright
 copyright: Copyright &copy; 2025 Marcus Vinicius

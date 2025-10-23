@@ -1,0 +1,191 @@
+# MkDocs configuration for knapsack-gnn project
+site_name: Knapsack GNN - Learning to Optimize
+site_description: Graph Neural Networks for solving the 0-1 Knapsack Problem
+site_author: Marcus Vinicius
+site_url: https://marcux777.github.io/GNN_to_Knapsack/
+repo_url: https://github.com/Marcux777/GNN_to_Knapsack
+repo_name: Marcux777/GNN_to_Knapsack
+edit_uri: edit/main/docs/
+
+# Theme configuration
+theme:
+  name: material
+  language: en
+  palette:
+    # Light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    # Dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: deep purple
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+
+  font:
+    text: Roboto
+    code: Roboto Mono
+
+  features:
+    - navigation.instant       # Instant loading
+    - navigation.tracking      # URL updates with scroll
+    - navigation.tabs          # Top-level tabs
+    - navigation.tabs.sticky   # Tabs always visible
+    - navigation.sections      # Expand sections
+    - navigation.expand        # Expand all by default
+    - navigation.top           # Back to top button
+    - search.suggest           # Search suggestions
+    - search.highlight         # Highlight search terms
+    - search.share             # Share search link
+    - content.code.copy        # Copy code button
+    - content.code.annotate    # Code annotations
+
+  icon:
+    repo: fontawesome/brands/github
+    edit: material/pencil
+    view: material/eye
+
+# Navigation structure
+nav:
+  - Home: index.md
+  - User Guide:
+      - Installation: guides/execution_guide.md
+      - Quick Start: guides/quickstart.md
+      - CLI Usage: guides/cli_usage.md
+  - Results & Validation:
+      - Experimental Results: reports/experimental_results.md
+      - Validation Report: reports/validation_report_2025-10-20.md
+      - Executive Summary (PT-BR): reports/sumario_executivo_pt-br.md
+  - Architecture:
+      - Implementation Summary: architecture/implementation_summary.md
+      - Validation Framework: validation/validation_framework.md
+  - API Reference:
+      - Overview: api/index.md
+      - Data Module: api/data.md
+      - Models: api/models.md
+      - Training: api/training.md
+      - Decoding: api/decoding.md
+      - Evaluation: api/eval.md
+      - Analysis: api/analysis.md
+  - Development:
+      - Contributing: development.md
+      - Testing: development.md#testing
+      - Documentation: development.md#documentation
+
+# Plugins
+plugins:
+  - search:
+      separator: '[\s\-,:!=\[\]()"/]+|(?!\b)(?=[A-Z][a-z])|\.(?!\d)|&[lg]t;'
+  - mkdocstrings:
+      default_handler: python
+      handlers:
+        python:
+          options:
+            # Rendering options
+            show_source: true
+            show_root_heading: true
+            show_root_full_path: false
+            show_object_full_path: false
+            show_category_heading: true
+            show_symbol_type_heading: true
+            show_symbol_type_toc: true
+
+            # Docstring options
+            docstring_style: google
+            docstring_section_style: table
+            merge_init_into_class: true
+            show_if_no_docstring: false
+
+            # Signature options
+            show_signature: true
+            show_signature_annotations: true
+            separate_signature: true
+
+            # Members options
+            members_order: source
+            group_by_category: true
+            show_submodules: false
+
+            # Additional options
+            filters: ["!^_"]
+            heading_level: 2
+
+# Markdown extensions
+markdown_extensions:
+  # Python Markdown
+  - abbr
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+      toc_depth: 3
+
+  # Python Markdown Extensions
+  - pymdownx.arithmatex:
+      generic: true
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.caret
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.snippets:
+      check_paths: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+
+# Extra configuration
+extra:
+  version:
+    provider: mike
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/Marcux777/GNN_to_Knapsack
+  analytics:
+    provider: google
+    property: !ENV GOOGLE_ANALYTICS_KEY
+
+# Additional CSS/JS
+extra_css:
+  - stylesheets/extra.css
+
+# Build directory
+site_dir: site
+
+# Watch for changes in these directories
+watch:
+  - src/knapsack_gnn
+
+# Strict mode (fail on warnings)
+strict: true
+
+# Copyright
+copyright: Copyright &copy; 2025 Marcus Vinicius

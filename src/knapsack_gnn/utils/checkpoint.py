@@ -100,9 +100,9 @@ def get_environment_info() -> dict[str, Any]:
             text=True,
             check=True,
         )
-        env_info["packages"] = result.stdout.strip().split("\n")
+        env_info["packages"]: list[str] = result.stdout.strip().split("\n")
     except subprocess.CalledProcessError:
-        env_info["packages"] = []
+        env_info["packages"]: list[str] = []
 
     return env_info
 

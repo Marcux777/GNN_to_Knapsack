@@ -17,14 +17,14 @@ Main modules:
 __version__ = "1.0.0"
 
 # Public API exports
-from knapsack_gnn import data, models, training, decoding, solvers, baselines
+from knapsack_gnn import baselines, data, decoding, models, solvers, training
 from knapsack_gnn.types import (
+    ConfigDict,
     FloatArray,
     IntArray,
     KnapsackInstance,
-    Solution,
-    ConfigDict,
     MetricsDict,
+    Solution,
 )
 
 __all__ = [

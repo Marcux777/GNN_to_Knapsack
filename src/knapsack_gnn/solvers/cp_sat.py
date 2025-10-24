@@ -3,7 +3,6 @@ Warm-start ILP solver utilities for the Knapsack problem using OR-Tools CP-SAT.
 """
 
 import time
-from typing import Dict, Optional, Tuple
 
 import numpy as np
 import torch
@@ -14,12 +13,12 @@ def solve_knapsack_warm_start(
     weights: np.ndarray,
     values: np.ndarray,
     capacity: float,
-    initial_solution: Optional[np.ndarray] = None,
-    fixed_variables: Optional[Dict[int, int]] = None,
-    time_limit: Optional[float] = None,
-    num_threads: Optional[int] = None,
-    max_hint_items: Optional[int] = None,
-) -> Dict:
+    initial_solution: np.ndarray | None = None,
+    fixed_variables: dict[int, int] | None = None,
+    time_limit: float | None = None,
+    num_threads: int | None = None,
+    max_hint_items: int | None = None,
+) -> dict:
     """
     Solve the 0/1 knapsack problem with optional warm-start hints and fixed variables.
 
@@ -125,12 +124,12 @@ def warm_start_ilp_solve(
     values: np.ndarray,
     weights: np.ndarray,
     capacity: float,
-    initial_solution: Optional[np.ndarray] = None,
-    probabilities: Optional[np.ndarray] = None,
+    initial_solution: np.ndarray | None = None,
+    probabilities: np.ndarray | None = None,
     time_limit: float = 1.0,
     fix_threshold: float = 0.9,
     seed: int = 0,
-) -> Tuple[float, np.ndarray, str]:
+) -> tuple[float, np.ndarray, str]:
     """
     Simplified wrapper for warm-start ILP solving compatible with test expectations.
 
@@ -178,7 +177,7 @@ def refine_solution(
     capacity: float,
     fix_threshold: float = 0.9,
     time_limit: float = 1.0,
-) -> Tuple[float, np.ndarray, float, str]:
+) -> tuple[float, np.ndarray, float, str]:
     """
     Refine a GNN solution using ILP with warm-start hints.
 

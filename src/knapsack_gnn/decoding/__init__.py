@@ -2,9 +2,9 @@
 
 from knapsack_gnn.decoding.sampling import (
     KnapsackSampler,
+    evaluate_model,
     sample_solutions,
     vectorized_sampling,
-    evaluate_model,
 )
 
 __all__ = [

@@ -25,7 +25,7 @@ Fixed 6 instances of improper exception chaining:
    # Before
    except ValueError:
        raise argparse.ArgumentTypeError(...)
-   
+
    # After
    except ValueError as err:
        raise argparse.ArgumentTypeError(...) from err
@@ -45,7 +45,7 @@ Fixed 6 instances of improper exception chaining:
    # Before
    except:
        return "unknown"
-   
+
    # After
    except Exception:
        return "unknown"
@@ -56,7 +56,7 @@ Fixed 6 instances of improper exception chaining:
    # Before
    except ImportError:
        raise ImportError(...)
-   
+
    # After
    except ImportError as err:
        raise ImportError(...) from err

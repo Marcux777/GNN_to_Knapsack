@@ -4,17 +4,17 @@ Tests model on n=500, n=1000, n=2000 with sufficient samples for statistical sig
 """
 
 import argparse
-import os
-import torch
-import numpy as np
 import json
-from pathlib import Path
+import os
+
+import numpy as np
+import torch
 
 from knapsack_gnn.data.generator import KnapsackDataset, KnapsackGenerator, KnapsackSolver
 from knapsack_gnn.data.graph_builder import KnapsackGraphDataset
-from knapsack_gnn.models.pna import create_model
 from knapsack_gnn.decoding.sampling import evaluate_model
-from knapsack_gnn.eval.reporting import save_results_to_json, print_evaluation_summary
+from knapsack_gnn.eval.reporting import print_evaluation_summary, save_results_to_json
+from knapsack_gnn.models.pna import create_model
 
 
 def main():
@@ -72,7 +72,7 @@ def main():
     print("=" * 80)
     print("LARGE INSTANCE COMPREHENSIVE EVALUATION")
     print("=" * 80)
-    print(f"\nConfiguration:")
+    print("\nConfiguration:")
     print(f"  Checkpoint: {args.checkpoint_dir}/{args.checkpoint_name}")
     print(f"  Output: {args.output_dir}")
     print(f"  Instances per size: {args.n_instances}")
@@ -99,7 +99,7 @@ def main():
     model = model.to(args.device)
     model.eval()
 
-    print(f"Model loaded successfully")
+    print("Model loaded successfully")
     if "epochs_trained" in checkpoint:
         print(f"Epochs trained: {checkpoint['epochs_trained']}")
 
@@ -122,7 +122,7 @@ def main():
         )
 
         # Solve with OR-Tools
-        print(f"2. Solving with OR-Tools (this may take a while for large instances)...")
+        print("2. Solving with OR-Tools (this may take a while for large instances)...")
         instances = KnapsackSolver.solve_batch(instances, verbose=True)
 
         # Check solve status
@@ -130,7 +130,7 @@ def main():
         print(f"   Successfully solved: {len(solved)}/{len(instances)}")
 
         if len(solved) == 0:
-            print(f"   ⚠️  WARNING: No instances were solved by OR-Tools!")
+            print("   ⚠️  WARNING: No instances were solved by OR-Tools!")
             continue
 
         # Use only solved instances
@@ -142,11 +142,11 @@ def main():
         print(f"   Dataset saved to: {dataset_path}")
 
         # Build graph dataset
-        print(f"3. Building graph dataset...")
+        print("3. Building graph dataset...")
         graph_dataset = KnapsackGraphDataset(dataset, normalize_features=True)
 
         # Evaluate
-        print(f"4. Running GNN evaluation...")
+        print("4. Running GNN evaluation...")
         print(f"   Strategy: {args.strategy}")
         print(f"   Samples: {args.n_samples}")
         print(f"   Temperature: {args.temperature}")
@@ -230,13 +230,13 @@ def main():
         print(f"    Feasibility: {r['feasibility_rate'] * 100:.1f}%")
 
         if gap < 2.0:
-            print(f"    ✅ Excellent! Gap < 2%")
+            print("    ✅ Excellent! Gap < 2%")
         elif gap < 5.0:
-            print(f"    ✓ Good. Gap < 5%")
+            print("    ✓ Good. Gap < 5%")
         elif gap < 10.0:
-            print(f"    ⚠ Moderate. Gap < 10%")
+            print("    ⚠ Moderate. Gap < 10%")
         else:
-            print(f"    ❌ Poor. Gap >= 10%")
+            print("    ❌ Poor. Gap >= 10%")
 
     # Save comprehensive summary
     summary = {
@@ -293,11 +293,11 @@ def main():
 
                 if p_value < 0.05:
                     if r2["mean_gap"] > r1["mean_gap"]:
-                        print(f"  → Significant degradation (p < 0.05)")
+                        print("  → Significant degradation (p < 0.05)")
                     else:
-                        print(f"  → Significant improvement (p < 0.05)")
+                        print("  → Significant improvement (p < 0.05)")
                 else:
-                    print(f"  → No significant difference (p >= 0.05)")
+                    print("  → No significant difference (p >= 0.05)")
 
     print("\n" + "=" * 80)
     print("EVALUATION COMPLETED")

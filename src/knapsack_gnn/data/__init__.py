@@ -1,14 +1,14 @@
 """Data generation and graph construction for knapsack problems."""
 
 from knapsack_gnn.data.generator import (
-    KnapsackInstance,
-    KnapsackGenerator,
-    KnapsackSolver,
     KnapsackDataset,
+    KnapsackGenerator,
+    KnapsackInstance,
+    KnapsackSolver,
+    create_datasets,
     generate_knapsack_instance,
     solve_knapsack_dp,
     solve_with_ortools,
-    create_datasets,
 )
 from knapsack_gnn.data.graph_builder import (
     KnapsackGraphBuilder,

@@ -55,7 +55,7 @@ GNN-PNA vs Greedy:
   Paired t-test: p < 0.001 ⭐ SIGNIFICANT
   95% CI: [0.32%, 0.66%]
   Cohen's d = 1.23 (large effect)
-  
+
 → GNN significantly outperforms Greedy with large practical effect
 ```
 
@@ -120,18 +120,18 @@ knapsack-gnn validate \
 Copy this structure for your Results section:
 
 ```
-The GNN-PNA model achieved a mean optimality gap of X% ± Y% (M ± SD), 
-significantly outperforming the Greedy baseline (Z% ± W%, t = A.BC, 
-p < 0.001, d = D.EF [large effect]). Five-fold cross-validation 
+The GNN-PNA model achieved a mean optimality gap of X% ± Y% (M ± SD),
+significantly outperforming the Greedy baseline (Z% ± W%, t = A.BC,
+p < 0.001, d = D.EF [large effect]). Five-fold cross-validation
 yielded consistent performance (CV gap: X'% ± Y'%, 95% CI: [L%, U%]).
 ```
 
 ### Example (Using Your Data)
 
 ```
-The GNN-PNA model achieved a mean optimality gap of 0.07% ± 0.34%, 
-significantly outperforming the Greedy baseline (0.49% ± 1.23%, 
-t(199) = 8.45, p < 0.001, d = 1.23 [large effect]). The model 
+The GNN-PNA model achieved a mean optimality gap of 0.07% ± 0.34%,
+significantly outperforming the Greedy baseline (0.49% ± 1.23%,
+t(199) = 8.45, p < 0.001, d = 1.23 [large effect]). The model
 maintained 100% feasibility across all test instances.
 ```
 

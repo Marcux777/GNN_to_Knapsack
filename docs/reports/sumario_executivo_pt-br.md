@@ -296,19 +296,19 @@ Estatística:
   ✅ mean_gap = 0.09% [CI: 0.06%-0.12%]
   ✅ p95 = 0.54% < 1.0% (target met)
   ✅ n=200, adequacy confirmed
-  
+
 Calibração:
   ✅ ECE = 0.004 < 0.1 (Platt scaled)
   ✅ Probabilities reliable
-  
+
 Repair:
   ✅ max_gap: 9.41% → 1.85%
   ✅ p95: 0.54% → 0.35%
-  
+
 Ablation:
   ✅ PNA dominates GCN/GAT
   ✅ 3 layers optimal
-  
+
 Confiança: 💪 "irrefutável"
 ```
 

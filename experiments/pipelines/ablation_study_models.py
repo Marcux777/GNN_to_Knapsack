@@ -21,24 +21,23 @@ Usage:
 import argparse
 import json
 import sys
-from datetime import datetime
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import torch
 
+from knapsack_gnn.data.generator import KnapsackDataset
+from knapsack_gnn.data.graph_builder import KnapsackGraphDataset
+from knapsack_gnn.decoding.sampling import evaluate_model
+from knapsack_gnn.models.gat import KnapsackGAT
+from knapsack_gnn.models.gcn import KnapsackGCN
+from knapsack_gnn.models.pna import create_model as create_pna_model
+from knapsack_gnn.training.loop import train_model
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-
-from knapsack_gnn.data.generator import KnapsackDataset
-from knapsack_gnn.data.graph_builder import KnapsackGraphDataset
-from knapsack_gnn.models.pna import create_model as create_pna_model, KnapsackPNA
-from knapsack_gnn.models.gcn import KnapsackGCN
-from knapsack_gnn.models.gat import KnapsackGAT
-from knapsack_gnn.training.loop import train_model
-from knapsack_gnn.decoding.sampling import evaluate_model
 
 
 def create_model_by_name(
@@ -70,7 +69,7 @@ def create_model_by_name(
         )
     elif model_name == "gcn":
         # Get feature dimensions from dataset
-        sample_data = dataset[0]
+        dataset[0]
         item_dim = 2  # weight, value
         constraint_dim = 1  # capacity
 
@@ -82,7 +81,7 @@ def create_model_by_name(
             dropout=dropout,
         )
     elif model_name == "gat":
-        sample_data = dataset[0]
+        dataset[0]
         item_dim = 2
         constraint_dim = 1
 
@@ -430,7 +429,7 @@ def main():
             all_results.append(result)
 
     # Create comparison table
-    df = create_comparison_table(all_results, output_dir)
+    create_comparison_table(all_results, output_dir)
 
     # Save all results
     all_results_path = output_dir / "all_results.json"

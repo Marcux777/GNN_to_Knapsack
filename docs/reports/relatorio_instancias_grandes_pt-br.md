@@ -174,11 +174,11 @@ Mostra:
 
 1. **Curto prazo**: Implementar estratégia híbrida para n=500
    - GNN primeiro, se gap estimado > threshold → warm-start ILP
-   
+
 2. **Médio prazo**: Retreinar com instâncias maiores
    - Expandir training set para n=50-500
    - 50 épocas adicionais
-   
+
 3. **Longo prazo**: Arquitetura melhorada
    - Graph Transformer ou GNN mais profunda
    - Attention mechanisms para capturar dependências de longo alcance

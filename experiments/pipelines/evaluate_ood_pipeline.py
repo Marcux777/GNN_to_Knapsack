@@ -5,16 +5,16 @@ Tests model generalization on larger problem instances than seen during training
 
 import argparse
 import os
-import torch
-import numpy as np
+
 import matplotlib.pyplot as plt
-from typing import Dict, Optional
+import numpy as np
+import torch
 
 from knapsack_gnn.data.generator import KnapsackDataset, KnapsackGenerator, KnapsackSolver
 from knapsack_gnn.data.graph_builder import KnapsackGraphDataset
+from knapsack_gnn.decoding.sampling import evaluate_model
+from knapsack_gnn.eval.reporting import print_evaluation_summary, save_results_to_json
 from knapsack_gnn.models.pna import create_model
-from knapsack_gnn.decoding.sampling import KnapsackSampler, evaluate_model
-from knapsack_gnn.eval.reporting import save_results_to_json, print_evaluation_summary
 
 
 def parse_args():
@@ -140,7 +140,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def parse_schedule(schedule_str: Optional[str]) -> Optional[tuple[int, ...]]:
+def parse_schedule(schedule_str: str | None) -> tuple[int, ...] | None:
     """Parse comma-separated sampling batches."""
     if schedule_str is None:
         return None
@@ -195,7 +195,7 @@ def generate_ood_datasets(
             n_items_range=(size, size),  # Fixed size
         )
 
-        print(f"Solving instances with OR-Tools...")
+        print("Solving instances with OR-Tools...")
         instances = KnapsackSolver.solve_batch(instances, verbose=False)
 
         dataset = KnapsackDataset(instances)
@@ -211,7 +211,7 @@ def generate_ood_datasets(
     return datasets
 
 
-def evaluate_ood_size(model, dataset: KnapsackDataset, size: int, args) -> Dict:
+def evaluate_ood_size(model, dataset: KnapsackDataset, size: int, args) -> dict:
     """
     Evaluate model on a specific OOD size
 
@@ -360,7 +360,7 @@ def plot_ood_results(all_results: list[dict], training_size_range: tuple, output
     if gap_distributions:
         bp = ax.boxplot(gap_distributions, labels=labels, patch_artist=True)
         colors = plt.cm.viridis(np.linspace(0.3, 0.9, len(gap_distributions)))
-        for patch, color in zip(bp["boxes"], colors):
+        for patch, color in zip(bp["boxes"], colors, strict=False):
             patch.set_facecolor(color)
             patch.set_alpha(0.7)
 
@@ -421,7 +421,7 @@ def main():
     print("=" * 70)
     print("OUT-OF-DISTRIBUTION (OOD) EVALUATION")
     print("=" * 70)
-    print(f"\nConfiguration:")
+    print("\nConfiguration:")
     for arg, value in vars(args).items():
         print(f"  {arg}: {value}")
 

@@ -4,9 +4,10 @@ Analyzes model performance across different problem sizes
 """
 
 import json
-import numpy as np
-import matplotlib.pyplot as plt
 from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
 from scipy import stats
 
 
@@ -100,8 +101,8 @@ def analyze_degradation(results: dict, training_range: tuple):
 
         # Check for outliers
         if gap > 2 * median_gap:
-            print(f"  ⚠️ WARNING: High variance detected (mean >> median)")
-            print(f"     → Likely has outliers pulling the mean up")
+            print("  ⚠️ WARNING: High variance detected (mean >> median)")
+            print("     → Likely has outliers pulling the mean up")
 
             # Calculate percentage of good solutions
             if "gaps" in r:
@@ -155,11 +156,11 @@ def statistical_comparison(results: dict):
 
             if p_value < 0.05:
                 if r2["mean_gap"] > r1["mean_gap"]:
-                    print(f"  → ❌ Significant degradation (p < 0.05)")
+                    print("  → ❌ Significant degradation (p < 0.05)")
                 else:
-                    print(f"  → ✅ Significant improvement (p < 0.05)")
+                    print("  → ✅ Significant improvement (p < 0.05)")
             else:
-                print(f"  → No significant difference (p >= 0.05)")
+                print("  → No significant difference (p >= 0.05)")
 
 
 def create_visualization(results: dict, training_range: tuple, output_path: str):
@@ -170,7 +171,7 @@ def create_visualization(results: dict, training_range: tuple, output_path: str)
     mean_gaps = [results[s]["mean_gap"] for s in sizes]
     median_gaps = [results[s]["median_gap"] for s in sizes]
     std_gaps = [results[s]["std_gap"] for s in sizes]
-    max_gaps = [results[s]["max_gap"] for s in sizes]
+    [results[s]["max_gap"] for s in sizes]
 
     fig, axes = plt.subplots(2, 2, figsize=(14, 10))
 
@@ -252,7 +253,7 @@ def create_visualization(results: dict, training_range: tuple, output_path: str)
 
         # Color boxes
         colors = ["#06D6A0", "#FFD166", "#EF476F"]
-        for i, (patch, color) in enumerate(zip(bp["boxes"], colors)):
+        for _i, (patch, color) in enumerate(zip(bp["boxes"], colors, strict=False)):
             patch.set_facecolor(color)
             patch.set_alpha(0.7)
 
@@ -279,7 +280,7 @@ def create_visualization(results: dict, training_range: tuple, output_path: str)
         linewidth=2,
     )
 
-    for i, (x, y, size) in enumerate(zip(extrap_factors, median_gaps, sizes)):
+    for _i, (x, y, size) in enumerate(zip(extrap_factors, median_gaps, sizes, strict=False)):
         ax.annotate(
             f"n={size}",
             (x, y),

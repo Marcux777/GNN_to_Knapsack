@@ -1,8 +1,8 @@
 """GNN model architectures for knapsack optimization."""
 
-from knapsack_gnn.models.pna import KnapsackPNA, KnapsackPNAWithBatch
-from knapsack_gnn.models.gcn import KnapsackGCN
 from knapsack_gnn.models.gat import KnapsackGAT
+from knapsack_gnn.models.gcn import KnapsackGCN
+from knapsack_gnn.models.pna import KnapsackPNA, KnapsackPNAWithBatch
 
 # Aliases for backward compatibility
 PNAKnapsackGNN = KnapsackPNA

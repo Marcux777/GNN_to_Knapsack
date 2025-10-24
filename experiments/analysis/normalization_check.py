@@ -24,13 +24,13 @@ import numpy as np
 import seaborn as sns
 import torch
 
+from knapsack_gnn.data.generator import KnapsackDataset, KnapsackGenerator, KnapsackSolver
+from knapsack_gnn.data.graph_builder import KnapsackGraphDataset
+from knapsack_gnn.models.pna import create_model
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-
-from knapsack_gnn.data.generator import KnapsackGenerator, KnapsackSolver, KnapsackDataset
-from knapsack_gnn.data.graph_builder import KnapsackGraphDataset
-from knapsack_gnn.models.pna import create_model
 
 sns.set_style("whitegrid")
 
@@ -180,7 +180,7 @@ def check_degree_histogram(datasets_by_size: dict, output_dir: Path):
 
     colors = plt.cm.viridis(np.linspace(0, 0.9, len(degree_by_size)))
 
-    for (size, degrees), color in zip(sorted(degree_by_size.items()), colors):
+    for (size, degrees), color in zip(sorted(degree_by_size.items()), colors, strict=False):
         unique_degrees, counts = np.unique(degrees, return_counts=True)
         ax.bar(
             unique_degrees + (size - min(degree_by_size.keys())) * 0.1,
@@ -295,7 +295,7 @@ def check_aggregator_activations(
 
     # Plot 4: Distribution violin
     acts_list = [np.concatenate(activations_by_size[s]).flatten() for s in sizes]
-    parts = axes[1, 1].violinplot(acts_list, positions=range(len(sizes)), showmeans=True)
+    axes[1, 1].violinplot(acts_list, positions=range(len(sizes)), showmeans=True)
     axes[1, 1].set_xticks(range(len(sizes)))
     axes[1, 1].set_xticklabels([f"n={s}" for s in sizes])
     axes[1, 1].set_ylabel("Activation")
@@ -318,9 +318,9 @@ def check_aggregator_activations(
         print(f"  Size {size}: {near_zero * 100:.1f}% near 0, {near_one * 100:.1f}% near 1")
 
         if near_zero > 0.5 or near_one > 0.5:
-            print(f"    ⚠️  WARNING: Potential saturation detected")
+            print("    ⚠️  WARNING: Potential saturation detected")
         else:
-            print(f"    ✓  No saturation")
+            print("    ✓  No saturation")
 
     print("=" * 80)
 

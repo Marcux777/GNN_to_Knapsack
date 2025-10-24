@@ -263,7 +263,7 @@ python ... --device cpu --batch-size 16
 ### Plots não aparecem (headless server)
 ```bash
 # Já configurado para salvar em arquivo
-# Verificar output em: 
+# Verificar output em:
 ls -la checkpoints/*/evaluation/*/*.png
 ```
 
@@ -327,8 +327,8 @@ checkpoints/ablation/
 
 **4.1 Setup:**
 ```latex
-We train on instances with 10-50 items (n=1000) and evaluate on 
-200 test instances. All experiments use PNA with 3 layers and 
+We train on instances with 10-50 items (n=1000) and evaluate on
+200 test instances. All experiments use PNA with 3 layers and
 hidden dimension 64, trained for 50 epochs.
 ```
 
@@ -349,9 +349,9 @@ Table 2 (use table_results_by_size.csv):
     - p50/p90/p95/p99 com CIs
 
 Text:
-    "Our method achieves median gap of 0% and p95 ≤ 0.54% on 
-     in-distribution instances (10-50 items). After repair, 
-     maximum gap reduces from 9.41% to <2%. Probability 
+    "Our method achieves median gap of 0% and p95 ≤ 0.54% on
+     in-distribution instances (10-50 items). After repair,
+     maximum gap reduces from 9.41% to <2%. Probability
      calibration yields ECE=0.004 after Platt scaling."
 ```
 

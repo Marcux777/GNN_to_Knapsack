@@ -16,20 +16,20 @@ from pathlib import Path
 
 import numpy as np
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
-from knapsack_gnn.analysis.stats import compute_gap_statistics_by_size
 from experiments.visualization_publication import (
     create_publication_figure,
     create_results_table_latex,
 )
+from knapsack_gnn.analysis.stats import compute_gap_statistics_by_size
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 
 def load_json(filepath: Path) -> dict:
     """Load JSON file."""
-    with open(filepath, "r") as f:
+    with open(filepath) as f:
         return json.load(f)
 
 

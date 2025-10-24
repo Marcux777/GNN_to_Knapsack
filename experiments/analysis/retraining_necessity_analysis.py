@@ -35,7 +35,7 @@ def analyze_retraining_necessity():
     good = sum(1 for g in gaps_n500 if 1.0 <= g < 5.0)
     bad = sum(1 for g in gaps_n500 if g >= 5.0)
 
-    print(f"\nResultados n=500 (30 instâncias):")
+    print("\nResultados n=500 (30 instâncias):")
     print(f"  • Excelente (gap < 1%):  {excellent} ({excellent / 30 * 100:.1f}%)")
     print(f"  • Bom (1% ≤ gap < 5%):   {good} ({good / 30 * 100:.1f}%)")
     print(f"  • Ruim (gap ≥ 5%):       {bad} ({bad / 30 * 100:.1f}%)")
@@ -114,17 +114,17 @@ def analyze_retraining_necessity():
         },
     ]
 
-    for i, strategy in enumerate(strategies, 1):
+    for _i, strategy in enumerate(strategies, 1):
         print(f"\n{'-' * 90}")
         print(f"{strategy['name']}")
         print(f"{'-' * 90}")
         print(f"Custo:            {strategy['cost']}")
         print(f"Implementação:    {strategy['implementation']}")
         print(f"Ganho esperado:   {strategy['expected_gain']}")
-        print(f"\nPrós:")
+        print("\nPrós:")
         for pro in strategy["pros"]:
             print(f"  ✓ {pro}")
-        print(f"\nContras:")
+        print("\nContras:")
         for con in strategy["cons"]:
             print(f"  ✗ {con}")
         print(f"\nRecomendação: {strategy['recommendation']}")
@@ -214,7 +214,7 @@ def analyze_retraining_necessity():
         },
     ]
 
-    for i, phase in enumerate(action_plan, 1):
+    for _i, phase in enumerate(action_plan, 1):
         print(f"\n{'=' * 90}")
         print(f"{phase['step']}")
         print(f"{'=' * 90}")

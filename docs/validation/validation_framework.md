@@ -313,34 +313,34 @@ fig = reporter.create_confidence_interval_plot(
 
 **Template**:
 ```
-The GNN-PNA model achieved a mean optimality gap of X% ± Y% (M ± SD), 
-significantly outperforming the Greedy baseline (Z% ± W%, t = A.BC, 
-p < 0.001, d = D.EF [large effect]). A Wilcoxon signed-rank test 
+The GNN-PNA model achieved a mean optimality gap of X% ± Y% (M ± SD),
+significantly outperforming the Greedy baseline (Z% ± W%, t = A.BC,
+p < 0.001, d = D.EF [large effect]). A Wilcoxon signed-rank test
 confirmed this difference (p < 0.001), with 95% CI [L%, U%].
 ```
 
 **Example**:
 ```
-The GNN-PNA model achieved a mean optimality gap of 0.07% ± 0.34%, 
-significantly outperforming the Greedy baseline (0.49% ± 1.23%, 
-t(199) = 8.45, p < 0.001, d = 1.23 [large effect]). A Wilcoxon 
-signed-rank test confirmed this difference (W = 1850, p < 0.001), 
+The GNN-PNA model achieved a mean optimality gap of 0.07% ± 0.34%,
+significantly outperforming the Greedy baseline (0.49% ± 1.23%,
+t(199) = 8.45, p < 0.001, d = 1.23 [large effect]). A Wilcoxon
+signed-rank test confirmed this difference (W = 1850, p < 0.001),
 with 95% CI [0.02%, 0.12%].
 ```
 
 ### Reporting Cross-Validation
 
 ```
-Five-fold cross-validation yielded a mean optimality gap of 0.072% 
-± 0.015% (95% CI: [0.045%, 0.098%]), demonstrating robust 
+Five-fold cross-validation yielded a mean optimality gap of 0.072%
+± 0.015% (95% CI: [0.045%, 0.098%]), demonstrating robust
 generalization performance.
 ```
 
 ### Sample Size Justification
 
 ```
-Power analysis revealed that with n = 200 test instances and an 
-observed effect size of d = 1.23, our study achieved a statistical 
+Power analysis revealed that with n = 200 test instances and an
+observed effect size of d = 1.23, our study achieved a statistical
 power of 0.95, exceeding the conventional threshold of 0.80.
 ```
 

@@ -976,7 +976,7 @@ def evaluate_model(
     sampler_kwargs = sampler_kwargs or {}
     sampler = KnapsackSampler(model, device, **sampler_kwargs)
 
-    results = {
+    results: dict[str, Any] = {
         "values": [],
         "optimal_values": [],
         "gaps": [],

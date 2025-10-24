@@ -6,6 +6,7 @@ Generates random Knapsack instances and solves them using OR-Tools for generatin
 import os
 import pickle
 import time
+from typing import Any
 
 import numpy as np
 
@@ -68,7 +69,7 @@ class KnapsackGenerator:
         return KnapsackInstance(weights, values, capacity)
 
     def generate_dataset(
-        self, n_instances: int, n_items_range: tuple[int, int], **kwargs: object
+        self, n_instances: int, n_items_range: tuple[int, int], **kwargs: Any
     ) -> list[KnapsackInstance]:
         """
         Generate multiple instances with varying sizes

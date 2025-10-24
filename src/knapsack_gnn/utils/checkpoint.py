@@ -204,7 +204,7 @@ def save_checkpoint_metadata(
             with open(checkpoint_dir / "config.yaml", "w") as f:
                 yaml.dump(config_dict, f, default_flow_style=False, sort_keys=False)
         elif isinstance(config, dict):
-            import yaml  # type: ignore[import-untyped]
+            import yaml
 
             with open(checkpoint_dir / "config.yaml", "w") as f:
                 yaml.dump(config, f, default_flow_style=False, sort_keys=False)

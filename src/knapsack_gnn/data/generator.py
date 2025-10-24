@@ -332,7 +332,7 @@ def solve_knapsack_dp(
     capacity: int,
     time_limit: float = 60.0,
     seed: int = 0,
-) -> tuple[float, np.ndarray]:
+) -> tuple[float | None, np.ndarray | None]:
     """
     Solve knapsack instance using dynamic programming (via OR-Tools).
 

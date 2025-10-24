@@ -243,7 +243,7 @@ class KnapsackTrainer:
             json.dump(self.history, f, indent=2)
         print(f"Training history saved to {filepath}")
 
-    def plot_training_curves(self, save_path: str | None = None):
+    def plot_training_curves(self, save_path: str | None = None) -> None:
         """
         Plot training curves
 

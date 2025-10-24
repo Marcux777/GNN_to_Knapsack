@@ -327,7 +327,7 @@ class PlattScaling:
         p_calibrated = sigmoid(A * logits + B)
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.A = 1.0
         self.B = 0.0
 

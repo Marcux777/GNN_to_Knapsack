@@ -7,6 +7,7 @@ import math
 import os
 import time
 from collections.abc import Sequence
+from typing import Any
 
 import numpy as np
 import torch
@@ -17,7 +18,7 @@ from knapsack_gnn.decoding.repair import SolutionRepairer
 from knapsack_gnn.solvers.cp_sat import solve_knapsack_warm_start
 
 try:
-    from scipy import stats as scipy_stats  # type: ignore
+    from scipy import stats as scipy_stats
 except ImportError:  # pragma: no cover - optional dependency
     scipy_stats = None
 
@@ -43,12 +44,12 @@ class KnapsackSampler:
 
     def __init__(
         self,
-        model,
+        model: Any,
         device: str | None = None,
         num_threads: int | None = None,
         compile_model: bool = False,
         quantize: bool = False,
-        quantize_dtype=torch.qint8,
+        quantize_dtype: Any = torch.qint8,
     ):
         """
         Args:
@@ -79,10 +80,10 @@ class KnapsackSampler:
         self._sampling_tolerance = 1e-3
 
     @staticmethod
-    def _apply_dynamic_quantization(model, dtype) -> torch.nn.Module:
+    def _apply_dynamic_quantization(model: Any, dtype: Any) -> torch.nn.Module:
         """Apply dynamic quantization if available."""
         try:
-            from torch.ao.quantization import quantize_dynamic  # type: ignore
+            from torch.ao.quantization import quantize_dynamic
 
             quantized = quantize_dynamic(model, {torch.nn.Linear}, dtype=dtype)
             return quantized
@@ -90,7 +91,7 @@ class KnapsackSampler:
             return model
 
     @staticmethod
-    def _try_compile(model) -> torch.nn.Module:
+    def _try_compile(model: Any) -> torch.nn.Module:
         """Compile the model if torch.compile is available."""
         compile_fn = getattr(torch, "compile", None)
         if compile_fn is None:  # pragma: no cover - optional feature
@@ -128,7 +129,7 @@ class KnapsackSampler:
             True if feasible, False otherwise
         """
         total_weight = np.sum(solution * weights)
-        return total_weight <= capacity
+        return bool(total_weight <= capacity)
 
     def compute_value(self, solution: np.ndarray, values: np.ndarray) -> float:
         """
@@ -141,7 +142,7 @@ class KnapsackSampler:
         Returns:
             Total value
         """
-        return np.sum(solution * values)
+        return float(np.sum(solution * values))
 
     def threshold_decode(
         self, probs: torch.Tensor, data: Data, threshold: float = 0.5
@@ -290,7 +291,7 @@ class KnapsackSampler:
         capacity = data.capacity
 
         best_solution = None
-        best_value = -1
+        best_value = -1.0
         best_threshold = 0.5
 
         # Try different thresholds
@@ -595,7 +596,7 @@ class KnapsackSampler:
         strategy: str = "sampling",
         n_samples: int = 100,
         temperature: float = 1.0,
-        **kwargs,
+        **kwargs: Any,
     ) -> dict:
         """
         Solve Knapsack instance using specified strategy
@@ -952,12 +953,12 @@ class KnapsackSampler:
 
 
 def evaluate_model(
-    model,
-    dataset,
+    model: Any,
+    dataset: Any,
     strategy: str = "sampling",
     device: str = "cuda" if torch.cuda.is_available() else "cpu",
     sampler_kwargs: dict | None = None,
-    **kwargs,
+    **kwargs: Any,
 ) -> dict:
     """
     Evaluate model on a dataset

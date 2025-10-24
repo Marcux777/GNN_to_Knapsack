@@ -10,6 +10,7 @@ import subprocess
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -133,10 +134,10 @@ def export_summary_to_csv(summary: dict, filepath: str, strategy: str = "unknown
         ... }
         >>> export_summary_to_csv(summary, "summary.csv", strategy="sampling")
     """
-    filepath = Path(filepath)
-    filepath.parent.mkdir(parents=True, exist_ok=True)
+    filepath_obj = Path(filepath)
+    filepath_obj.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(filepath, "w", newline="") as f:
+    with open(filepath_obj, "w", newline="") as f:
         writer = csv.writer(f)
         writer.writerow(["metric", "value", "strategy", "timestamp"])
 
@@ -145,7 +146,7 @@ def export_summary_to_csv(summary: dict, filepath: str, strategy: str = "unknown
         for key, value in summary.items():
             writer.writerow([key, value, strategy, timestamp])
 
-    print(f"Summary exported to CSV: {filepath}")
+    print(f"Summary exported to CSV: {filepath_obj}")
 
 
 def save_results_to_json(results: dict, filepath: str) -> None:
@@ -162,7 +163,7 @@ def save_results_to_json(results: dict, filepath: str) -> None:
     """
 
     # Convert numpy types to Python types
-    def convert(obj):
+    def convert(obj) -> Any:
         if isinstance(obj, np.ndarray):
             return obj.tolist()
         if isinstance(obj, np.integer):
@@ -173,13 +174,13 @@ def save_results_to_json(results: dict, filepath: str) -> None:
 
     serializable_results = {k: convert(v) for k, v in results.items()}
 
-    filepath = Path(filepath)
-    filepath.parent.mkdir(parents=True, exist_ok=True)
+    filepath_obj = Path(filepath)
+    filepath_obj.parent.mkdir(parents=True, exist_ok=True)
 
-    with open(filepath, "w") as f:
+    with open(filepath_obj, "w") as f:
         json.dump(serializable_results, f, indent=2)
 
-    print(f"Results saved to {filepath}")
+    print(f"Results saved to {filepath_obj}")
 
 
 def print_evaluation_summary(results: dict, title: str = "Evaluation Results") -> None:
@@ -251,7 +252,7 @@ def print_evaluation_summary(results: dict, title: str = "Evaluation Results") -
     print("=" * 60 + "\n")
 
 
-def create_results_dataframe(results: list[dict]):
+def create_results_dataframe(results: list[dict]) -> Any:
     """
     Convert results to pandas DataFrame for analysis.
 

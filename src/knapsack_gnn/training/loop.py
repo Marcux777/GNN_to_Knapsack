@@ -5,6 +5,7 @@ Implements supervised learning with Binary Cross-Entropy loss
 
 import json
 import os
+from typing import Any
 
 import torch
 import torch.nn as nn
@@ -304,7 +305,7 @@ def train_model(
     batch_size: int = 32,
     learning_rate: float = 0.002,
     checkpoint_dir: str = "checkpoints",
-    **kwargs: object,
+    **kwargs: Any,
 ) -> tuple[nn.Module, dict]:
     """
     Convenience function to train a model

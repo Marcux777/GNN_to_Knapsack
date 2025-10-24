@@ -3,12 +3,16 @@ Graph Builder for Knapsack Problem
 Converts Knapsack instances into tripartite graphs for GNN processing
 """
 
-import matplotlib.pyplot as plt
+from typing import TYPE_CHECKING
+
 import numpy as np
 import torch
 from torch_geometric.data import Data, Dataset
 
 from .generator import KnapsackDataset, KnapsackInstance
+
+if TYPE_CHECKING:
+    import matplotlib.pyplot as plt
 
 
 class KnapsackGraphBuilder:

@@ -295,8 +295,6 @@ class KnapsackTrainer:
         else:
             plt.show()
 
-        return fig
-
 
 def train_model(
     model: nn.Module,

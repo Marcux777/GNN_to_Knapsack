@@ -21,13 +21,13 @@ class KnapsackInstance:
     """Represents a single Knapsack problem instance"""
 
     def __init__(self, weights: np.ndarray, values: np.ndarray, capacity: int):
-        self.weights = weights
-        self.values = values
-        self.capacity = capacity
-        self.n_items = len(weights)
-        self.solution = None
-        self.optimal_value = None
-        self.solve_time = None
+        self.weights: np.ndarray = weights
+        self.values: np.ndarray = values
+        self.capacity: int = capacity
+        self.n_items: int = len(weights)
+        self.solution: np.ndarray | None = None
+        self.optimal_value: float | None = None
+        self.solve_time: float | None = None
 
     def __repr__(self) -> str:
         return f"KnapsackInstance(n_items={self.n_items}, capacity={self.capacity})"

@@ -155,7 +155,7 @@ class KnapsackGraphDataset(Dataset):
         return self.graphs[idx]
 
 
-def visualize_graph(data: Data, title: str = "Knapsack Graph") -> "plt":  # type: ignore[name-defined]
+def visualize_graph(data: Data, title: str = "Knapsack Graph") -> "plt":
     """
     Visualize a Knapsack graph using networkx and matplotlib
 

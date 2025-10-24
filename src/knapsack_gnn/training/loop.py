@@ -66,7 +66,7 @@ class KnapsackTrainer:
         )
 
         # Training history
-        self.history = {
+        self.history: dict[str, list] = {
             "train_loss": [],
             "val_loss": [],
             "train_accuracy": [],

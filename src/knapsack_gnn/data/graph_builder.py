@@ -155,7 +155,7 @@ class KnapsackGraphDataset(Dataset):
         return self.graphs[idx]
 
 
-def visualize_graph(data: Data, title: str = "Knapsack Graph") -> plt:
+def visualize_graph(data: Data, title: str = "Knapsack Graph") -> "plt":  # type: ignore[name-defined]
     """
     Visualize a Knapsack graph using networkx and matplotlib
 
@@ -163,6 +163,7 @@ def visualize_graph(data: Data, title: str = "Knapsack Graph") -> plt:
         data: PyTorch Geometric Data object
         title: Plot title
     """
+    import matplotlib.pyplot as plt
     import networkx as nx
 
     # Create networkx graph

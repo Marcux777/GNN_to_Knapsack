@@ -236,7 +236,7 @@ class KnapsackTrainer:
         print(f"Epochs trained: {self.epochs_trained}")
         print(f"Best val loss: {self.best_val_loss:.4f}")
 
-    def save_history(self):
+    def save_history(self) -> None:
         """Save training history to JSON"""
         filepath = os.path.join(self.checkpoint_dir, "training_history.json")
         with open(filepath, "w") as f:

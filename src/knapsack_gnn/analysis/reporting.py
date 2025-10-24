@@ -369,7 +369,7 @@ class AcademicReporter:
         self,
         data: dict[str, np.ndarray],
         ylabel: str = "Optimality Gap (%)",
-        title: str = None,
+        title: str | None = None,
         save_path: str | None = None,
     ) -> plt.Figure:
         """

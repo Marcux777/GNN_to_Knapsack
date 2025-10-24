@@ -299,14 +299,14 @@ class KnapsackTrainer:
 
 
 def train_model(
-    model,
-    train_dataset,
-    val_dataset,
+    model: nn.Module,
+    train_dataset: object,
+    val_dataset: object,
     num_epochs: int = 50,
     batch_size: int = 32,
     learning_rate: float = 0.002,
     checkpoint_dir: str = "checkpoints",
-    **kwargs,
+    **kwargs: object,
 ) -> tuple[nn.Module, dict]:
     """
     Convenience function to train a model

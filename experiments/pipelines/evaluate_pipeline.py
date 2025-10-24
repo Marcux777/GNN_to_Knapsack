@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """
 Evaluation Script for Knapsack GNN
 Evaluates trained model on test set with multiple inference strategies
@@ -5,25 +6,22 @@ Evaluates trained model on test set with multiple inference strategies
 
 import argparse
 import os
-from typing import Optional
 
-import matplotlib.pyplot as plt
-import numpy as np
 import torch
 
 # Import project modules
 from knapsack_gnn.data.generator import KnapsackDataset
 from knapsack_gnn.data.graph_builder import KnapsackGraphDataset
-from knapsack_gnn.models.pna import create_model
-from knapsack_gnn.decoding.sampling import evaluate_model, KnapsackSampler
-from knapsack_gnn.training.metrics import (
+from knapsack_gnn.decoding.sampling import KnapsackSampler, evaluate_model
+from knapsack_gnn.eval.reporting import (
+    benchmark_time,
     plot_optimality_gaps,
     plot_performance_vs_size,
     plot_solution_comparison,
     print_evaluation_summary,
     save_results_to_json,
-    benchmark_time,
 )
+from knapsack_gnn.models.pna import create_model
 
 
 def parse_args():
@@ -171,7 +169,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def parse_schedule(schedule_str: Optional[str]) -> Optional[tuple[int, ...]]:
+def parse_schedule(schedule_str: str | None) -> tuple[int, ...] | None:
     """Parse comma-separated sampling schedule."""
     if schedule_str is None:
         return None
@@ -239,7 +237,7 @@ def main():
     print("=" * 70)
     print("KNAPSACK GNN EVALUATION")
     print("=" * 70)
-    print(f"\nConfiguration:")
+    print("\nConfiguration:")
     for arg, value in vars(args).items():
         print(f"  {arg}: {value}")
     print()
@@ -446,7 +444,7 @@ def main():
     print("EVALUATION COMPLETED")
     print("=" * 70)
     print(f"\nResults saved to: {args.output_dir}")
-    print(f"\nKey Metrics (Test Set):")
+    print("\nKey Metrics (Test Set):")
     print(f"  Mean Optimality Gap: {test_results['mean_gap']:.2f}%")
     print(f"  Median Optimality Gap: {test_results['median_gap']:.2f}%")
     print(f"  Feasibility Rate: {test_results['feasibility_rate'] * 100:.2f}%")

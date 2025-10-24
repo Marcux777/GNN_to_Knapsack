@@ -3,7 +3,7 @@ Graph Builder for Knapsack Problem
 Converts Knapsack instances into tripartite graphs for GNN processing
 """
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import torch
@@ -253,16 +253,28 @@ if __name__ == "__main__":
 
 
 # Convenience wrapper function for backward compatibility
-def build_bipartite_graph(instance, normalize_features: bool = True) -> Data:
+def build_bipartite_graph(instance: Any, normalize_features: bool = True, *args: Any) -> Data:
     """
     Build a bipartite graph from a knapsack instance.
 
     Args:
-        instance: KnapsackInstance object
+        instance: KnapsackInstance object or dict with values, weights, capacity keys
         normalize_features: Whether to normalize node features
+        *args: If instance is dict, can pass weights and capacity as separate args (for backwards compat)
 
     Returns:
         PyTorch Geometric Data object
     """
+    # Handle backwards compatibility: old API was build_bipartite_graph(values, weights, capacity)
+    import numpy as np
+
+    if isinstance(normalize_features, np.ndarray) and len(args) >= 1:
+        # Old API: build_bipartite_graph(values, weights, capacity)
+        values = instance
+        weights = normalize_features
+        capacity = args[0]
+        instance = KnapsackInstance(weights=weights, values=values, capacity=int(capacity))
+        normalize_features = False  # Don't normalize for backwards compatibility
+
     builder = KnapsackGraphBuilder(normalize_features=normalize_features)
     return builder.build_graph(instance)

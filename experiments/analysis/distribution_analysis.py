@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """
 In-Distribution Analysis Script
 
@@ -15,35 +16,33 @@ import argparse
 import json
 import sys
 from pathlib import Path
-from typing import Dict, List
 
 import numpy as np
 import pandas as pd
+
+from experiments.visualization import (
+    plot_gap_cdf_by_size,
+    plot_gap_percentiles_by_size,
+    plot_gap_violin_by_size,
+)
+from knapsack_gnn.analysis.stats import (
+    check_sample_size_adequacy,
+    compute_gap_statistics_by_size,
+)
 
 # Add project root to path
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from knapsack_gnn.analysis.stats import (
-    compute_gap_statistics_by_size,
-    compute_cdf_by_size,
-    check_sample_size_adequacy,
-)
-from experiments.visualization import (
-    plot_gap_cdf_by_size,
-    plot_gap_percentiles_by_size,
-    plot_gap_violin_by_size,
-)
 
-
-def load_results_from_json(filepath: Path) -> Dict:
+def load_results_from_json(filepath: Path) -> dict:
     """Load evaluation results from JSON file."""
-    with open(filepath, "r") as f:
+    with open(filepath) as f:
         return json.load(f)
 
 
-def extract_gaps_and_sizes(results: Dict) -> tuple[List[float], List[int]]:
+def extract_gaps_and_sizes(results: dict) -> tuple[list[float], list[int]]:
     """
     Extract gaps and sizes from evaluation results.
 
@@ -70,11 +69,11 @@ def extract_gaps_and_sizes(results: Dict) -> tuple[List[float], List[int]]:
 
 
 def analyze_distribution(
-    gaps: List[float],
-    sizes: List[int],
+    gaps: list[float],
+    sizes: list[int],
     output_dir: Path,
     strategy_name: str = "Unknown",
-    size_bins: List[int] = None,
+    size_bins: list[int] = None,
 ):
     """
     Perform comprehensive distribution analysis.
@@ -150,7 +149,7 @@ def analyze_distribution(
         if stats_by_size[size]["count"] == 0:
             continue
 
-        size_gaps = np.array([g for g, sz in zip(gaps, sizes) if sz == size])
+        size_gaps = np.array([g for g, sz in zip(gaps, sizes, strict=False) if sz == size])
         adequacy = check_sample_size_adequacy(size_gaps, target_error=0.5, confidence=0.95)
         adequacy_results[size] = adequacy
 

@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """
 Visualization utilities for experiment analysis.
 

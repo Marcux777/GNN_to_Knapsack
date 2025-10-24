@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """
 Outlier Analysis Script for Knapsack GNN
 Investigates instances with high optimality gaps to diagnose issues

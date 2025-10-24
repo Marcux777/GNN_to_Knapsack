@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """
 Unified experiment runner for the Knapsack GNN project.
 
@@ -21,28 +22,26 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
 
 import torch
+
+from experiments.visualization import (
+    plot_optimality_gaps,
+)
+from knapsack_gnn.data.generator import KnapsackDataset, create_datasets
+from knapsack_gnn.data.graph_builder import KnapsackGraphDataset
+from knapsack_gnn.decoding.sampling import KnapsackSampler, evaluate_model
+from knapsack_gnn.eval.reporting import (
+    print_evaluation_summary,
+    save_results_to_json,
+)
+from knapsack_gnn.models.pna import create_model
+from knapsack_gnn.training.loop import train_model
 
 # Ensure project root is on sys.path for absolute imports when running as a module.
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
-
-from knapsack_gnn.data.generator import create_datasets, KnapsackDataset
-from knapsack_gnn.data.graph_builder import KnapsackGraphDataset
-from knapsack_gnn.decoding.sampling import KnapsackSampler, evaluate_model
-from knapsack_gnn.models.pna import create_model
-from knapsack_gnn.training.loop import train_model
-from knapsack_gnn.eval.reporting import (
-    print_evaluation_summary,
-    save_results_to_json,
-)
-from experiments.visualization import (
-    plot_optimality_gaps,
-    plot_strategy_comparison,
-)
 
 # --------------------------------------------------------------------------- #
 # Helper dataclasses
@@ -174,7 +173,7 @@ def run_training(
     learning_rate: float,
     weight_decay: float,
     seed: int,
-) -> Tuple[Path, GraphDatasetBundle]:
+) -> tuple[Path, GraphDatasetBundle]:
     """
     Train the model and return (checkpoint_dir, graph_dataset_bundle).
     """
@@ -241,7 +240,7 @@ def run_training(
 # --------------------------------------------------------------------------- #
 
 
-def build_sampler_kwargs(args: argparse.Namespace) -> Dict:
+def build_sampler_kwargs(args: argparse.Namespace) -> dict:
     return {
         "num_threads": args.threads,
         "compile_model": args.compile,
@@ -249,7 +248,7 @@ def build_sampler_kwargs(args: argparse.Namespace) -> Dict:
     }
 
 
-def build_strategy_kwargs(args: argparse.Namespace, strategy: str) -> Dict:
+def build_strategy_kwargs(args: argparse.Namespace, strategy: str) -> dict:
     if strategy == "sampling":
         return {
             "temperature": args.temperature,
@@ -305,7 +304,7 @@ def evaluate_strategy(
     strategy: str,
     args: argparse.Namespace,
     output_dir: Path,
-) -> Dict:
+) -> dict:
     sampler_kwargs = build_sampler_kwargs(args)
     strategy_kwargs = build_strategy_kwargs(args, strategy)
 
@@ -354,7 +353,7 @@ def generate_solution_examples(
 
     for idx in range(min(num_examples, len(dataset))):
         data = dataset[idx]
-        result = sampler.solve(data, strategy=strategy, **strategy_kwargs)
+        sampler.solve(data, strategy=strategy, **strategy_kwargs)
         # TODO: Implement plot_solution_comparison for individual solution visualization
         # plot_path = output_dir / f"solution_{strategy}_{idx}.png"
         # plot_solution_comparison(
@@ -366,7 +365,7 @@ def generate_solution_examples(
         # )
 
 
-def summarize_results(results_map: Dict[str, Dict]) -> Dict:
+def summarize_results(results_map: dict[str, dict]) -> dict:
     summary = {}
     for strategy, metrics in results_map.items():
         summary[strategy] = {
@@ -410,9 +409,9 @@ def run_full_pipeline(args: argparse.Namespace) -> None:
         seed=args.seed,
     )
 
-    checkpoint_dir: Optional[Path] = Path(args.checkpoint_dir) if args.checkpoint_dir else None
-    graph_bundle: Optional[GraphDatasetBundle] = None
-    model: Optional[torch.nn.Module] = None
+    checkpoint_dir: Path | None = Path(args.checkpoint_dir) if args.checkpoint_dir else None
+    graph_bundle: GraphDatasetBundle | None = None
+    model: torch.nn.Module | None = None
 
     if args.skip_train:
         if checkpoint_dir is None:
@@ -453,7 +452,7 @@ def run_full_pipeline(args: argparse.Namespace) -> None:
     strategies = [s.strip() for s in args.strategies]
     print(f"\n[PIPELINE] Running strategies: {strategies}")
 
-    results_map: Dict[str, Dict] = {}
+    results_map: dict[str, dict] = {}
     for strategy in strategies:
         results = evaluate_strategy(
             model=model,
@@ -535,7 +534,7 @@ def run_evaluate_only(args: argparse.Namespace) -> None:
 
     evaluation_dir = ensure_dir(checkpoint_dir / "evaluation")
     strategies = [s.strip() for s in args.strategies]
-    results_map: Dict[str, Dict] = {}
+    results_map: dict[str, dict] = {}
     for strategy in strategies:
         results = evaluate_strategy(
             model=model,

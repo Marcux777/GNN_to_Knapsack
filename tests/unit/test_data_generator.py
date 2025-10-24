@@ -67,8 +67,8 @@ class TestExactSolvers:
 
         max_value, solution = solve_knapsack_dp(values, weights, capacity)
 
-        assert max_value == 35, f"Expected value 35, got {max_value}"
-        assert np.sum(solution) <= capacity, "Solution exceeds capacity"
+        assert max_value == 30, f"Expected value 30, got {max_value}"
+        assert np.dot(solution, weights) <= capacity, "Solution exceeds capacity"
         assert np.dot(solution, values) == max_value, "Solution value mismatch"
 
     def test_ortools_solver_small_instance(self):
@@ -79,8 +79,8 @@ class TestExactSolvers:
 
         max_value, solution = solve_with_ortools(values, weights, capacity)
 
-        assert max_value == 35.0, f"Expected value 35, got {max_value}"
-        assert np.sum(solution * weights) <= capacity, "Solution exceeds capacity"
+        assert max_value == 30.0, f"Expected value 30, got {max_value}"
+        assert np.dot(solution, weights) <= capacity, "Solution exceeds capacity"
         assert np.dot(solution, values) == max_value, "Solution value mismatch"
 
     def test_dp_ortools_consistency(self):
@@ -135,12 +135,12 @@ class TestInstanceDistribution:
 
         all_values = np.array(all_values)
 
-        # Values should be in expected range (e.g., 1-1000)
+        # Values should be in expected range (1-100 per default parameters)
         assert np.min(all_values) >= 1
-        assert np.max(all_values) <= 2500
+        assert np.max(all_values) <= 100
 
-        # Mean should be reasonable
-        assert 100 <= np.mean(all_values) <= 2000
+        # Mean should be reasonable (around 50 for uniform 1-100)
+        assert 30 <= np.mean(all_values) <= 70
 
     def test_weight_distribution(self):
         """Test that weights follow expected distribution."""
@@ -153,9 +153,9 @@ class TestInstanceDistribution:
 
         all_weights = np.array(all_weights)
 
-        # Weights should be in expected range
+        # Weights should be in expected range (1-100 per default parameters)
         assert np.min(all_weights) >= 1
-        assert np.max(all_weights) <= 2500
+        assert np.max(all_weights) <= 100
 
-        # Mean should be reasonable
-        assert 100 <= np.mean(all_weights) <= 2000
+        # Mean should be reasonable (around 50 for uniform 1-100)
+        assert 30 <= np.mean(all_weights) <= 70

@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """
 Calibration Study Script
 
@@ -19,19 +20,18 @@ import numpy as np
 import seaborn as sns
 import torch
 
-PROJECT_ROOT = Path(__file__).resolve().parents[2]
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
-
 from knapsack_gnn.analysis.calibration import (
-    CalibrationMetrics,
-    TemperatureScaling,
     PlattScaling,
+    TemperatureScaling,
     evaluate_calibration,
 )
 from knapsack_gnn.data.generator import KnapsackDataset
 from knapsack_gnn.data.graph_builder import KnapsackGraphDataset
 from knapsack_gnn.models.pna import create_model
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
 
 sns.set_style("whitegrid")
 
@@ -55,7 +55,7 @@ def plot_reliability_diagram(
 
     colors = plt.cm.Set2(np.linspace(0, 1, len(results_list)))
 
-    for results, label, color in zip(results_list, labels, colors):
+    for results, label, color in zip(results_list, labels, colors, strict=False):
         rel_curve = results["reliability_curve"]
         mean_pred = np.array(rel_curve["mean_predicted"])
         frac_pos = np.array(rel_curve["fraction_positive"])

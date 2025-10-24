@@ -19,6 +19,7 @@ Usage:
 """
 
 import warnings
+from collections.abc import Callable
 
 import numpy as np
 from scipy import stats
@@ -136,7 +137,10 @@ class StatisticalAnalyzer:
         return float(np.mean(differences) / np.std(differences, ddof=1))
 
     def bootstrap_ci(
-        self, data: np.ndarray, statistic_fn: callable = np.mean, confidence: float = 0.95
+        self,
+        data: np.ndarray,
+        statistic_fn: Callable[[np.ndarray], float] = np.mean,
+        confidence: float = 0.95,
     ) -> tuple[float, float]:
         """
         Bootstrap confidence interval for any statistic
@@ -153,17 +157,17 @@ class StatisticalAnalyzer:
         n = len(data)
 
         # Generate bootstrap samples
-        bootstrap_stats = []
+        bootstrap_stats: list[float] = []
         for _ in range(self.n_bootstrap):
             sample = np.random.choice(data, size=n, replace=True)
             bootstrap_stats.append(statistic_fn(sample))
 
-        bootstrap_stats = np.array(bootstrap_stats)
+        bootstrap_stats_arr = np.array(bootstrap_stats)
 
         # Compute percentile CI
         alpha = 1 - confidence
-        lower = np.percentile(bootstrap_stats, alpha / 2 * 100)
-        upper = np.percentile(bootstrap_stats, (1 - alpha / 2) * 100)
+        lower = np.percentile(bootstrap_stats_arr, alpha / 2 * 100)
+        upper = np.percentile(bootstrap_stats_arr, (1 - alpha / 2) * 100)
 
         return (float(lower), float(upper))
 
@@ -185,12 +189,12 @@ class StatisticalAnalyzer:
         n = len(differences)
 
         # Bootstrap
-        bootstrap_means = []
+        bootstrap_means_list: list[float] = []
         for _ in range(self.n_bootstrap):
             sample = np.random.choice(differences, size=n, replace=True)
-            bootstrap_means.append(np.mean(sample))
+            bootstrap_means_list.append(float(np.mean(sample)))
 
-        bootstrap_means = np.array(bootstrap_means)
+        bootstrap_means = np.array(bootstrap_means_list)
 
         # Compute CI
         alpha = 1 - confidence
@@ -200,9 +204,9 @@ class StatisticalAnalyzer:
         # Bootstrap p-value (proportion of bootstrap samples with opposite sign)
         observed_mean = np.mean(differences)
         if observed_mean > 0:
-            p_value = np.mean(bootstrap_means <= 0) * 2  # Two-tailed
+            p_value = float(np.mean(bootstrap_means <= 0) * 2)  # Two-tailed
         elif observed_mean < 0:
-            p_value = np.mean(bootstrap_means >= 0) * 2
+            p_value = float(np.mean(bootstrap_means >= 0) * 2)
         else:
             p_value = 1.0
 
@@ -231,19 +235,19 @@ class StatisticalAnalyzer:
         if alpha is None:
             alpha = self.alpha
 
-        p_values = np.array(p_values)
-        n_tests = len(p_values)
+        p_values_arr = np.array(p_values)
+        n_tests = len(p_values_arr)
 
         # Bonferroni correction
         corrected_alpha = alpha / n_tests
-        corrected_p_values = np.minimum(p_values * n_tests, 1.0)
+        corrected_p_values = np.minimum(p_values_arr * n_tests, 1.0)
 
         return {
             "method": "Bonferroni",
             "n_tests": n_tests,
             "original_alpha": alpha,
             "corrected_alpha": corrected_alpha,
-            "original_p_values": p_values.tolist(),
+            "original_p_values": p_values_arr.tolist(),
             "corrected_p_values": corrected_p_values.tolist(),
             "significant": (corrected_p_values < alpha).tolist(),
         }
@@ -262,12 +266,12 @@ class StatisticalAnalyzer:
         if alpha is None:
             alpha = self.alpha
 
-        p_values = np.array(p_values)
-        n_tests = len(p_values)
+        p_values_arr = np.array(p_values)
+        n_tests = len(p_values_arr)
 
         # Sort p-values and track original indices
-        sorted_indices = np.argsort(p_values)
-        sorted_p_values = p_values[sorted_indices]
+        sorted_indices = np.argsort(p_values_arr)
+        sorted_p_values = p_values_arr[sorted_indices]
 
         # Holm correction
         reject = np.zeros(n_tests, dtype=bool)
@@ -286,7 +290,7 @@ class StatisticalAnalyzer:
             "method": "Holm-Bonferroni",
             "n_tests": n_tests,
             "original_alpha": alpha,
-            "p_values": p_values.tolist(),
+            "p_values": p_values_arr.tolist(),
             "significant": original_reject.tolist(),
         }
 
@@ -660,12 +664,12 @@ class StatisticalAnalyzer:
         if alpha is None:
             alpha = self.alpha
 
-        p_values = np.array(p_values)
-        n_tests = len(p_values)
+        p_values_arr = np.array(p_values)
+        n_tests = len(p_values_arr)
 
         # Sort p-values and track indices
-        sorted_indices = np.argsort(p_values)
-        sorted_p_values = p_values[sorted_indices]
+        sorted_indices = np.argsort(p_values_arr)
+        sorted_p_values = p_values_arr[sorted_indices]
 
         # BH critical values
         critical_values = (np.arange(1, n_tests + 1) / n_tests) * alpha
@@ -694,7 +698,7 @@ class StatisticalAnalyzer:
             "method": "Benjamini-Hochberg",
             "n_tests": n_tests,
             "original_alpha": alpha,
-            "p_values": p_values.tolist(),
+            "p_values": p_values_arr.tolist(),
             "adjusted_p_values": original_adjusted_p.tolist(),
             "significant": original_reject.tolist(),
         }
@@ -880,7 +884,7 @@ def compare_methods(
     )
 
 
-def print_comparison_report(results: dict):
+def print_comparison_report(results: dict) -> None:
     """
     Print formatted comparison report
 
@@ -960,7 +964,7 @@ def print_comparison_report(results: dict):
 
 def compute_percentiles(
     data: np.ndarray, percentiles: list[float] | None = None
-) -> dict[str, float]:
+) -> dict[str, float | None]:
     """
     Compute percentiles for gap distribution.
 
@@ -978,7 +982,7 @@ def compute_percentiles(
     if data.size == 0:
         return {f"p{int(p)}": None for p in percentiles}
 
-    result = {}
+    result: dict[str, float | None] = {}
     for p in percentiles:
         result[f"p{int(p)}"] = float(np.percentile(data, p))
 
@@ -1010,21 +1014,21 @@ def compute_gap_statistics_by_size(
         >>> print(stats[10])
         {'mean': 0.0667, 'p95': 0.12, ...}
     """
-    gaps = np.asarray(gaps)
-    sizes = np.asarray(sizes)
+    gaps_arr = np.asarray(gaps)
+    sizes_arr = np.asarray(sizes)
 
-    if len(gaps) != len(sizes):
+    if len(gaps_arr) != len(sizes_arr):
         raise ValueError("gaps and sizes must have the same length")
 
     if size_bins is None:
-        size_bins = sorted(set(sizes))
+        size_bins = sorted(set(sizes_arr))
 
     results = {}
     analyzer = StatisticalAnalyzer()
 
     for size in size_bins:
-        mask = sizes == size
-        size_gaps = gaps[mask]
+        mask = sizes_arr == size
+        size_gaps = gaps_arr[mask]
 
         if len(size_gaps) == 0:
             results[size] = {
@@ -1051,19 +1055,19 @@ def compute_gap_statistics_by_size(
 
         # Percentiles
         percentiles = compute_percentiles(size_gaps, [50, 90, 95, 99])
-        stats_dict.update(percentiles)
+        stats_dict.update(percentiles)  # type: ignore[arg-type]
 
         # Bootstrap CI for mean (if sample size >= 10)
         if len(size_gaps) >= 10:
             try:
                 ci_lower, ci_upper = analyzer.bootstrap_ci(size_gaps, statistic_fn=np.mean)
-                stats_dict["ci_95"] = (float(ci_lower), float(ci_upper))
+                stats_dict["ci_95"] = (float(ci_lower), float(ci_upper))  # type: ignore[assignment]
             except Exception:
-                stats_dict["ci_95"] = (None, None)
+                stats_dict["ci_95"] = (None, None)  # type: ignore[assignment]
         else:
-            stats_dict["ci_95"] = (None, None)
+            stats_dict["ci_95"] = (None, None)  # type: ignore[assignment]
 
-        results[size] = stats_dict
+        results[size] = stats_dict  # type: ignore[assignment]
 
     return results
 
@@ -1123,20 +1127,20 @@ def compute_cdf_by_size(
         >>> cdfs = compute_cdf_by_size(gaps, sizes)
         >>> x, cdf = cdfs[10]['x'], cdfs[10]['cdf']
     """
-    gaps = np.asarray(gaps)
-    sizes = np.asarray(sizes)
+    gaps_arr = np.asarray(gaps)
+    sizes_arr = np.asarray(sizes)
 
-    if len(gaps) != len(sizes):
+    if len(gaps_arr) != len(sizes_arr):
         raise ValueError("gaps and sizes must have the same length")
 
     if size_bins is None:
-        size_bins = sorted(set(sizes))
+        size_bins = sorted(set(sizes_arr))
 
     results = {}
 
     for size in size_bins:
-        mask = sizes == size
-        size_gaps = gaps[mask]
+        mask = sizes_arr == size
+        size_gaps = gaps_arr[mask]
 
         if len(size_gaps) == 0:
             results[size] = {"x": np.array([]), "cdf": np.array([])}
@@ -1243,8 +1247,8 @@ if __name__ == "__main__":
 
     # Simulate gaps by size
     np.random.seed(42)
-    gaps_all = []
-    sizes_all = []
+    gaps_all: list[float] = []
+    sizes_all: list[int] = []
     for size in [10, 25, 50, 100]:
         n_instances = 50
         # Larger sizes have slightly higher gaps

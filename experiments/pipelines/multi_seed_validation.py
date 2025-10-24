@@ -24,9 +24,9 @@ from knapsack_gnn.analysis.stats import StatisticalAnalyzer
 from knapsack_gnn.data.generator import KnapsackDataset
 from knapsack_gnn.data.graph_builder import KnapsackGraphDataset
 from knapsack_gnn.decoding.sampling import evaluate_model
+from knapsack_gnn.eval.reporting import save_results_to_json
 from knapsack_gnn.models.pna import create_model
 from knapsack_gnn.training.loop import train_model
-from knapsack_gnn.training.metrics import save_results_to_json
 
 
 def parse_args():

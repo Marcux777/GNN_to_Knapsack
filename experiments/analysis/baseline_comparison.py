@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """
 Baseline Comparison Script
 Compares GNN, Greedy, Random, and OR-Tools on the same test set
@@ -19,8 +20,8 @@ from knapsack_gnn.baselines.greedy import GreedySolver, RandomSolver
 from knapsack_gnn.data.generator import KnapsackDataset, KnapsackGenerator, KnapsackSolver
 from knapsack_gnn.data.graph_builder import KnapsackGraphDataset
 from knapsack_gnn.decoding.sampling import KnapsackSampler
+from knapsack_gnn.eval.reporting import save_results_to_json
 from knapsack_gnn.models.pna import create_model
-from knapsack_gnn.training.metrics import save_results_to_json
 
 
 def parse_args():

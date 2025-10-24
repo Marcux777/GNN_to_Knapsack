@@ -78,10 +78,15 @@ class TestCUDADeterminism:
     @pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA not available")
     def test_cuda_deterministic(self):
         """Test that CUDA operations are deterministic with set_seed."""
-        set_seed(42, deterministic=True)
-        cuda_val_1 = torch.rand(10, device="cuda")
+        try:
+            set_seed(42, deterministic=True)
+            cuda_val_1 = torch.rand(10, device="cuda")
 
-        set_seed(42, deterministic=True)
-        cuda_val_2 = torch.rand(10, device="cuda")
+            set_seed(42, deterministic=True)
+            cuda_val_2 = torch.rand(10, device="cuda")
 
-        assert torch.allclose(cuda_val_1, cuda_val_2), "CUDA random not deterministic"
+            assert torch.allclose(cuda_val_1, cuda_val_2), "CUDA random not deterministic"
+        except RuntimeError as e:
+            if "no kernel image" in str(e) or "not compatible" in str(e):
+                pytest.skip(f"CUDA GPU not compatible with PyTorch: {e}")
+            raise

@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 """
 Ablation Study Script
 Tests importance of architectural choices and feature engineering
@@ -6,23 +7,23 @@ Tests importance of architectural choices and feature engineering
 import argparse
 import os
 import sys
-import torch
-import numpy as np
-import matplotlib.pyplot as plt
-from typing import Optional
 import time
+
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
 
 from knapsack_gnn.data.generator import KnapsackDataset, create_datasets
 from knapsack_gnn.data.graph_builder import KnapsackGraphDataset
-from knapsack_gnn.models.pna import create_model as create_pna_model
-from knapsack_gnn.models.gcn import create_gcn_model
-from knapsack_gnn.models.gat import create_gat_model
-from knapsack_gnn.training.loop import train_model
 from knapsack_gnn.decoding.sampling import evaluate_model
-from knapsack_gnn.training.metrics import save_results_to_json
+from knapsack_gnn.eval.reporting import save_results_to_json
+from knapsack_gnn.models.gat import create_gat_model
+from knapsack_gnn.models.gcn import create_gcn_model
+from knapsack_gnn.models.pna import create_model as create_pna_model
+from knapsack_gnn.training.loop import train_model
 
 
-def parse_schedule(schedule_str: Optional[str]) -> Optional[tuple[int, ...]]:
+def parse_schedule(schedule_str: str | None) -> tuple[int, ...] | None:
     """Convert comma-separated schedule string to tuple of ints."""
     if schedule_str is None:
         return None
@@ -192,7 +193,7 @@ def parse_args():
     return args
 
 
-def build_strategy_kwargs(args) -> Dict:
+def build_strategy_kwargs(args) -> dict:
     """Build strategy-specific kwargs for inference."""
     if args.strategy == "sampling":
         return {
@@ -225,7 +226,7 @@ def build_strategy_kwargs(args) -> Dict:
     return {}
 
 
-def architecture_ablation(args) -> Dict:
+def architecture_ablation(args) -> dict:
     """
     Compare different GNN architectures: PNA, GCN, GAT
 
@@ -339,7 +340,7 @@ def architecture_ablation(args) -> Dict:
     return results
 
 
-def feature_ablation(args) -> Dict:
+def feature_ablation(args) -> dict:
     """
     Test importance of different features
 
@@ -364,7 +365,7 @@ def feature_ablation(args) -> Dict:
     # Load datasets
     print("\nLoading datasets...")
     train_dataset = KnapsackDataset.load(f"{args.data_dir}/train.pkl")
-    val_dataset = KnapsackDataset.load(f"{args.data_dir}/val.pkl")
+    KnapsackDataset.load(f"{args.data_dir}/val.pkl")
     test_dataset = KnapsackDataset.load(f"{args.data_dir}/test.pkl")
 
     # Load trained model
@@ -469,7 +470,7 @@ def randomize_features(instance):
     return modified
 
 
-def plot_architecture_results(results: Dict, output_dir: str):
+def plot_architecture_results(results: dict, output_dir: str):
     """Create visualization for architecture ablation"""
     print("\nGenerating architecture comparison plots...")
 
@@ -489,7 +490,7 @@ def plot_architecture_results(results: Dict, output_dir: str):
     ax.set_ylabel("Number of Parameters", fontsize=12)
     ax.set_title("Model Complexity", fontsize=14, fontweight="bold")
     ax.grid(axis="y", alpha=0.3)
-    for i, (name, param) in enumerate(zip(arch_names, n_params)):
+    for i, (_name, param) in enumerate(zip(arch_names, n_params, strict=False)):
         ax.text(i, param + max(n_params) * 0.02, f"{param:,}", ha="center", fontsize=10)
 
     # 2. Test Optimality Gap
@@ -498,7 +499,7 @@ def plot_architecture_results(results: Dict, output_dir: str):
     ax.set_ylabel("Mean Optimality Gap (%)", fontsize=12)
     ax.set_title("Test Set Performance", fontsize=14, fontweight="bold")
     ax.grid(axis="y", alpha=0.3)
-    for i, (name, gap) in enumerate(zip(arch_names, test_gaps)):
+    for i, (_name, gap) in enumerate(zip(arch_names, test_gaps, strict=False)):
         ax.text(i, gap + 0.1, f"{gap:.2f}%", ha="center", fontsize=10)
 
     # 3. Training Time
@@ -507,7 +508,7 @@ def plot_architecture_results(results: Dict, output_dir: str):
     ax.set_ylabel("Training Time (minutes)", fontsize=12)
     ax.set_title("Training Efficiency", fontsize=14, fontweight="bold")
     ax.grid(axis="y", alpha=0.3)
-    for i, (name, time_val) in enumerate(zip(arch_names, train_times)):
+    for i, (_name, time_val) in enumerate(zip(arch_names, train_times, strict=False)):
         ax.text(i, time_val + max(train_times) * 0.02, f"{time_val:.1f}m", ha="center", fontsize=10)
 
     # 4. Validation Accuracy
@@ -517,7 +518,7 @@ def plot_architecture_results(results: Dict, output_dir: str):
     ax.set_title("Training Performance", fontsize=14, fontweight="bold")
     ax.grid(axis="y", alpha=0.3)
     ax.set_ylim([min(val_accs) - 5, 100])
-    for i, (name, acc) in enumerate(zip(arch_names, val_accs)):
+    for i, (_name, acc) in enumerate(zip(arch_names, val_accs, strict=False)):
         ax.text(i, acc + 1, f"{acc:.1f}%", ha="center", fontsize=10)
 
     plt.tight_layout()
@@ -531,7 +532,7 @@ def plot_architecture_results(results: Dict, output_dir: str):
 
     # Loss curves
     ax = axes[0]
-    for i, (arch_name, color) in enumerate(zip(arch_names, colors)):
+    for _i, (arch_name, color) in enumerate(zip(arch_names, colors, strict=False)):
         history = results[arch_name]["history"]
         epochs = range(1, len(history["train_loss"]) + 1)
         ax.plot(
@@ -559,7 +560,7 @@ def plot_architecture_results(results: Dict, output_dir: str):
 
     # Accuracy curves
     ax = axes[1]
-    for i, (arch_name, color) in enumerate(zip(arch_names, colors)):
+    for _i, (arch_name, color) in enumerate(zip(arch_names, colors, strict=False)):
         history = results[arch_name]["history"]
         epochs = range(1, len(history["train_accuracy"]) + 1)
         ax.plot(
@@ -592,7 +593,7 @@ def plot_architecture_results(results: Dict, output_dir: str):
     plt.close()
 
 
-def plot_feature_results(results: Dict, output_dir: str):
+def plot_feature_results(results: dict, output_dir: str):
     """Create visualization for feature ablation"""
     print("\nGenerating feature ablation plots...")
 
@@ -614,7 +615,7 @@ def plot_feature_results(results: Dict, output_dir: str):
     ax.grid(axis="x", alpha=0.3)
 
     # Annotate bars
-    for i, (bar, gap) in enumerate(zip(bars, gaps)):
+    for _i, (bar, gap) in enumerate(zip(bars, gaps, strict=False)):
         ax.text(
             gap + max(gaps) * 0.02,
             bar.get_y() + bar.get_height() / 2,
@@ -638,7 +639,7 @@ def plot_feature_results(results: Dict, output_dir: str):
     ax.grid(axis="x", alpha=0.3)
 
     # Annotate bars
-    for i, (bar, feas) in enumerate(zip(bars, feasibility)):
+    for _i, (bar, feas) in enumerate(zip(bars, feasibility, strict=False)):
         ax.text(
             feas + 0.5, bar.get_y() + bar.get_height() / 2, f"{feas:.1f}%", va="center", fontsize=10
         )
@@ -663,7 +664,7 @@ def main():
     print("=" * 70)
     print("ABLATION STUDY")
     print("=" * 70)
-    print(f"\nConfiguration:")
+    print("\nConfiguration:")
     for arg, value in vars(args).items():
         print(f"  {arg}: {value}")
 

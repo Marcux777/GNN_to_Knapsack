@@ -5,6 +5,7 @@ Provides subcommands for training, evaluation, and experiments.
 """
 
 import sys
+from typing import Any
 
 import click
 
@@ -23,7 +24,7 @@ from knapsack_gnn.utils.error_handler import (
     default=False,
 )
 @click.pass_context
-def main(ctx, debug) -> None:
+def main(ctx: Any, debug: bool) -> None:
     """
     Knapsack GNN - Learning to Optimize.
 
@@ -52,7 +53,9 @@ def main(ctx, debug) -> None:
 @click.option("--lr", type=float, help="Learning rate (overrides config)")
 @click.pass_context
 @handle_cli_errors()
-def train(ctx, config, seed, device, epochs, batch_size, lr) -> None:
+def train(
+    ctx: Any, config: str, seed: int, device: str, epochs: int, batch_size: int, lr: float
+) -> None:
     """Train a GNN model on knapsack instances."""
     ctx.obj.get("debug", False)
 
@@ -94,7 +97,7 @@ def train(ctx, config, seed, device, epochs, batch_size, lr) -> None:
 @click.option("--test-only", is_flag=True, help="Evaluate only on test set")
 @click.pass_context
 @handle_cli_errors()
-def eval(ctx, checkpoint, strategy, device, test_only) -> None:
+def eval(ctx: Any, checkpoint: str, strategy: str, device: str, test_only: bool) -> None:
     """Evaluate a trained model on knapsack instances."""
     ctx.obj.get("debug", False)
 
@@ -128,7 +131,7 @@ def eval(ctx, checkpoint, strategy, device, test_only) -> None:
 )
 @click.option("--strategy", type=str, default="sampling", help="Decoding strategy")
 @click.option("--device", type=str, default="cpu", help="Device")
-def ood(checkpoint, sizes, strategy, device) -> None:
+def ood(checkpoint: str, sizes: str, strategy: str, device: str) -> None:
     """Evaluate out-of-distribution generalization."""
     from experiments.pipelines.evaluate_ood_pipeline import main as ood_main
 
@@ -160,7 +163,9 @@ def ood(checkpoint, sizes, strategy, device) -> None:
 @click.option("--checkpoint", type=click.Path(), help="Existing checkpoint to use")
 @click.option("--seed", type=int, default=1337, help="Random seed")
 @click.option("--device", type=str, default="cpu", help="Device")
-def pipeline(config, strategies, skip_train, checkpoint, seed, device) -> None:
+def pipeline(
+    config: str, strategies: str, skip_train: bool, checkpoint: str, seed: int, device: str
+) -> None:
     """Run full experiment pipeline (train + evaluate)."""
     from experiments.pipelines.main import main as pipeline_main
 
@@ -190,7 +195,7 @@ def pipeline(config, strategies, skip_train, checkpoint, seed, device) -> None:
 )
 @click.option("--config", type=click.Path(), help="Config file")
 @click.option("--device", type=str, default="cpu", help="Device")
-def ablation(mode, config, device) -> None:
+def ablation(mode: str, config: str, device: str) -> None:
     """Run ablation studies (features or architecture)."""
     from experiments.pipelines.ablation_study import main as ablation_main
 
@@ -220,7 +225,7 @@ def ablation(mode, config, device) -> None:
 )
 @click.pass_context
 @handle_cli_errors()
-def compare(ctx, checkpoint, baseline) -> None:
+def compare(ctx: Any, checkpoint: str, baseline: tuple) -> None:
     """Compare GNN with classical baselines."""
     ctx.obj.get("debug", False)
 
@@ -243,7 +248,7 @@ def compare(ctx, checkpoint, baseline) -> None:
 
 @main.command()
 @click.argument("checkpoint", type=click.Path(exists=True))
-def demo(checkpoint) -> None:
+def demo(checkpoint: str) -> None:
     """Run interactive demo with visualization."""
     from experiments.examples.demo import main as demo_main
 
@@ -302,22 +307,22 @@ def demo(checkpoint) -> None:
 @click.option("--device", type=str, default="cpu", help="Device (cpu/cuda)")
 @click.option("--seed", type=int, default=42, help="Random seed for reproducibility")
 def validate(
-    checkpoint,
-    output_dir,
-    baselines,
-    run_cv,
-    cv_folds,
-    stratify_cv,
-    alpha,
-    n_bootstrap,
-    check_power,
-    strategy,
-    n_samples,
-    latex,
-    figures,
-    config,
-    device,
-    seed,
+    checkpoint: str,
+    output_dir: str,
+    baselines: tuple,
+    run_cv: bool,
+    cv_folds: int,
+    stratify_cv: bool,
+    alpha: float,
+    n_bootstrap: int,
+    check_power: bool,
+    strategy: str,
+    n_samples: int,
+    latex: bool,
+    figures: bool,
+    config: str,
+    device: str,
+    seed: int,
 ) -> None:
     """
     Run comprehensive publication-grade validation.

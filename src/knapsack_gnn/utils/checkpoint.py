@@ -82,7 +82,7 @@ def get_environment_info() -> dict[str, Any]:
         - hostname: Machine hostname
         - packages: Installed packages and versions
     """
-    env_info = {
+    env_info: dict[str, Any] = {
         "python_version": sys.version,
         "python_executable": sys.executable,
         "platform": platform.platform(),
@@ -100,9 +100,9 @@ def get_environment_info() -> dict[str, Any]:
             text=True,
             check=True,
         )
-        env_info["packages"]: list[str] = result.stdout.strip().split("\n")
+        env_info["packages"] = result.stdout.strip().split("\n")
     except subprocess.CalledProcessError:
-        env_info["packages"]: list[str] = []
+        env_info["packages"] = []
 
     return env_info
 

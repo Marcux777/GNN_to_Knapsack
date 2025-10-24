@@ -13,9 +13,6 @@ Target: ECE < 0.1 after calibration
 """
 
 import numpy as np
-import torch
-import torch.nn as nn
-from typing import Tuple, Optional, Dict, List
 from scipy.optimize import minimize_scalar
 
 
@@ -30,7 +27,7 @@ class CalibrationMetrics:
         y_prob: np.ndarray,
         n_bins: int = 10,
         strategy: str = "uniform",
-    ) -> Tuple[float, Dict]:
+    ) -> tuple[float, dict]:
         """
         Compute Expected Calibration Error (ECE).
 
@@ -143,7 +140,7 @@ class CalibrationMetrics:
         y_prob: np.ndarray,
         n_bins: int = 10,
         strategy: str = "uniform",
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Compute reliability curve (calibration plot).
 
@@ -230,7 +227,7 @@ class TemperatureScaling:
         p_calibrated = sigmoid(logits / T)
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.temperature = 1.0
 
     def fit(
@@ -255,7 +252,7 @@ class TemperatureScaling:
         logits = np.asarray(logits)
         y_true = np.asarray(y_true)
 
-        def objective(temp):
+        def objective(temp: float) -> float:
             if temp <= 0:
                 return 1e10
 
@@ -317,7 +314,7 @@ class TemperatureScaling:
         return self.transform(logits)
 
     @staticmethod
-    def _sigmoid(x):
+    def _sigmoid(x: np.ndarray) -> np.ndarray:
         """Numerically stable sigmoid."""
         return np.where(x >= 0, 1 / (1 + np.exp(-x)), np.exp(x) / (1 + np.exp(x)))
 
@@ -336,7 +333,7 @@ class PlattScaling:
 
     def fit(
         self, logits: np.ndarray, y_true: np.ndarray, max_iter: int = 100
-    ) -> Tuple[float, float]:
+    ) -> tuple[float, float]:
         """
         Learn optimal A and B parameters.
 
@@ -382,7 +379,7 @@ class PlattScaling:
         return self.transform(logits)
 
     @staticmethod
-    def _sigmoid(x):
+    def _sigmoid(x: np.ndarray) -> np.ndarray:
         """Numerically stable sigmoid."""
         return np.where(x >= 0, 1 / (1 + np.exp(-x)), np.exp(x) / (1 + np.exp(x)))
 
@@ -391,7 +388,7 @@ def evaluate_calibration(
     y_true: np.ndarray,
     y_prob: np.ndarray,
     n_bins: int = 10,
-) -> Dict:
+) -> dict:
     """
     Comprehensive calibration evaluation.
 

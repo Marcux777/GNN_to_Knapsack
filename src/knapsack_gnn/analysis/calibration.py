@@ -270,7 +270,7 @@ class TemperatureScaling:
                 nll = -np.mean(
                     y_true * np.log(scaled_probs) + (1 - y_true) * np.log(1 - scaled_probs)
                 )
-                return nll
+                return float(nll)
             else:
                 raise ValueError(f"Unknown method: {method}")
 

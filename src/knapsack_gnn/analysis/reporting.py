@@ -414,8 +414,8 @@ class AcademicReporter:
         self,
         results: dict[str, dict],
         metric: str = "mean_gap",
-        ylabel: str = None,
-        title: str = None,
+        ylabel: str | None = None,
+        title: str | None = None,
         save_path: str | None = None,
     ) -> plt.Figure:
         """

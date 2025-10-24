@@ -347,8 +347,8 @@ def solve_knapsack_dp(
     Returns:
         Tuple of (optimal_value, solution)
     """
-    # KnapsackInstance constructor takes (weights, values, capacity)
-    instance = KnapsackInstance(weights, values, capacity)
+    # Create instance with correct parameter order (weights, values, capacity)
+    instance = KnapsackInstance(weights=weights, values=values, capacity=capacity)
     solved = KnapsackSolver.solve(instance, time_limit=time_limit)
     return solved.optimal_value, solved.solution
 

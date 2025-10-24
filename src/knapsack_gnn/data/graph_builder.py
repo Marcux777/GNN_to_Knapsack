@@ -145,7 +145,7 @@ class KnapsackGraphDataset(Dataset):
     def len(self) -> int:
         return len(self.graphs)
 
-    def get(self, idx) -> Data:
+    def get(self, idx: int) -> Data:
         return self.graphs[idx]
 
     def __len__(self) -> int:

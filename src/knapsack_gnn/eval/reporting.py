@@ -163,7 +163,7 @@ def save_results_to_json(results: dict, filepath: str) -> None:
     """
 
     # Convert numpy types to Python types
-    def convert(obj) -> Any:
+    def convert(obj: Any) -> Any:
         if isinstance(obj, np.ndarray):
             return obj.tolist()
         if isinstance(obj, np.integer):

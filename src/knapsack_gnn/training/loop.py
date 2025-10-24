@@ -21,14 +21,14 @@ class KnapsackTrainer:
     def __init__(
         self,
         model: nn.Module,
-        train_dataset,
-        val_dataset,
+        train_dataset: object,
+        val_dataset: object,
         batch_size: int = 32,
         learning_rate: float = 0.002,
         weight_decay: float = 1e-6,
         device: str = "cuda" if torch.cuda.is_available() else "cpu",
         checkpoint_dir: str = "checkpoints",
-    ):
+    ) -> None:
         """
         Args:
             model: KnapsackPNA model

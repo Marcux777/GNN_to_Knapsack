@@ -68,7 +68,7 @@ class KnapsackGenerator:
         return KnapsackInstance(weights, values, capacity)
 
     def generate_dataset(
-        self, n_instances: int, n_items_range: tuple[int, int], **kwargs
+        self, n_instances: int, n_items_range: tuple[int, int], **kwargs: object
     ) -> list[KnapsackInstance]:
         """
         Generate multiple instances with varying sizes

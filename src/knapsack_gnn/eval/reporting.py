@@ -7,10 +7,9 @@ Handles export of results to CSV, JSON, and console output.
 import csv
 import json
 import subprocess
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Dict, Optional
 
 import numpy as np
 
@@ -25,8 +24,8 @@ class EvalResult:
     gap: float
     feasible: bool
     time_ms: float
-    samples_used: Optional[int] = None
-    ilp_time_ms: Optional[float] = None
+    samples_used: int | None = None
+    ilp_time_ms: float | None = None
     seed: int = 0
     commit: str = "unknown"
 
@@ -63,7 +62,7 @@ def get_git_commit() -> str:
 
 
 def export_results_to_csv(
-    results: list[dict], filepath: str, include_metadata: bool = True
+    results: list[dict], filepath: str | Path, include_metadata: bool = True
 ) -> None:
     """
     Export evaluation results to CSV format.
@@ -94,11 +93,11 @@ def export_results_to_csv(
         base_fields.extend(["commit", "timestamp"])
 
     # Ensure Path
-    filepath = Path(filepath)
-    filepath.parent.mkdir(parents=True, exist_ok=True)
+    filepath_obj = Path(filepath)
+    filepath_obj.parent.mkdir(parents=True, exist_ok=True)
 
     # Write CSV
-    with open(filepath, "w", newline="") as f:
+    with open(filepath_obj, "w", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=base_fields)
         writer.writeheader()
 
@@ -113,10 +112,10 @@ def export_results_to_csv(
                     row["timestamp"] = timestamp
             writer.writerow(row)
 
-    print(f"Results exported to CSV: {filepath}")
+    print(f"Results exported to CSV: {filepath_obj}")
 
 
-def export_summary_to_csv(summary: Dict, filepath: str, strategy: str = "unknown") -> None:
+def export_summary_to_csv(summary: dict, filepath: str, strategy: str = "unknown") -> None:
     """
     Export summary metrics to CSV format.
 
@@ -149,7 +148,7 @@ def export_summary_to_csv(summary: Dict, filepath: str, strategy: str = "unknown
     print(f"Summary exported to CSV: {filepath}")
 
 
-def save_results_to_json(results: Dict, filepath: str) -> None:
+def save_results_to_json(results: dict, filepath: str) -> None:
     """
     Save results to JSON file with proper type conversion.
 
@@ -183,7 +182,7 @@ def save_results_to_json(results: Dict, filepath: str) -> None:
     print(f"Results saved to {filepath}")
 
 
-def print_evaluation_summary(results: Dict, title: str = "Evaluation Results") -> None:
+def print_evaluation_summary(results: dict, title: str = "Evaluation Results") -> None:
     """
     Print formatted evaluation summary to console.
 
@@ -205,7 +204,7 @@ def print_evaluation_summary(results: Dict, title: str = "Evaluation Results") -
 
     # Gap statistics
     if "mean_gap" in results:
-        print(f"Optimality Gap:")
+        print("Optimality Gap:")
         print(f"  Mean:   {results['mean_gap']:.4f}%")
         print(f"  Median: {results.get('median_gap', 0):.4f}%")
         print(f"  Std:    {results.get('std_gap', 0):.4f}%")
@@ -213,39 +212,39 @@ def print_evaluation_summary(results: Dict, title: str = "Evaluation Results") -
 
     # Feasibility
     if "feasibility_rate" in results:
-        print(f"\nFeasibility:")
+        print("\nFeasibility:")
         print(f"  Rate: {results['feasibility_rate'] * 100:.2f}%")
         if "feasible_count" in results:
             print(f"  Count: {results['feasible_count']}/{results.get('total_count', 0)}")
 
     # Timing
     if "mean_inference_time" in results:
-        print(f"\nInference Timing:")
+        print("\nInference Timing:")
         print(f"  Mean:   {results['mean_inference_time'] * 1000:.2f} ms")
         print(f"  Median: {results.get('median_inference_time', 0) * 1000:.2f} ms")
         print(f"  P90:    {results.get('p90_inference_time', 0) * 1000:.2f} ms")
 
     # Solver timing (if available)
     if "mean_solver_time" in results:
-        print(f"\nExact Solver Timing:")
+        print("\nExact Solver Timing:")
         print(f"  Mean:   {results['mean_solver_time'] * 1000:.2f} ms")
         print(f"  Median: {results.get('median_solver_time', 0) * 1000:.2f} ms")
 
     # Speedup
     if "mean_speedup" in results:
-        print(f"\nSpeedup vs Exact Solver:")
+        print("\nSpeedup vs Exact Solver:")
         print(f"  Mean:   {results['mean_speedup']:.2f}x")
         print(f"  Median: {results.get('median_speedup', 0):.2f}x")
 
     # Sampling stats
     if "mean_samples_used" in results:
-        print(f"\nSampling:")
+        print("\nSampling:")
         print(f"  Mean samples: {results['mean_samples_used']:.1f}")
         print(f"  Median samples: {results.get('median_samples_used', 0):.1f}")
 
     # ILP stats
     if "mean_ilp_time" in results and results["mean_ilp_time"] is not None:
-        print(f"\nILP Refinement:")
+        print("\nILP Refinement:")
         print(f"  Mean time: {results['mean_ilp_time'] * 1000:.2f} ms")
         print(f"  Success rate: {results.get('ilp_success_rate', 0) * 100:.1f}%")
 
@@ -282,7 +281,7 @@ def create_results_dataframe(results: list[dict]):
 
 def save_run_metadata(
     output_dir: Path,
-    config: Dict,
+    config: dict,
     seed: int,
     device: str,
 ) -> None:
@@ -304,6 +303,7 @@ def save_run_metadata(
         ... )
     """
     import platform
+
     import torch
 
     output_dir = Path(output_dir)

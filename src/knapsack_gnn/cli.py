@@ -23,7 +23,7 @@ from knapsack_gnn.utils.error_handler import (
     default=False,
 )
 @click.pass_context
-def main(ctx, debug):
+def main(ctx, debug) -> None:
     """
     Knapsack GNN - Learning to Optimize.
 
@@ -52,7 +52,7 @@ def main(ctx, debug):
 @click.option("--lr", type=float, help="Learning rate (overrides config)")
 @click.pass_context
 @handle_cli_errors()
-def train(ctx, config, seed, device, epochs, batch_size, lr):
+def train(ctx, config, seed, device, epochs, batch_size, lr) -> None:
     """Train a GNN model on knapsack instances."""
     ctx.obj.get("debug", False)
 
@@ -94,7 +94,7 @@ def train(ctx, config, seed, device, epochs, batch_size, lr):
 @click.option("--test-only", is_flag=True, help="Evaluate only on test set")
 @click.pass_context
 @handle_cli_errors()
-def eval(ctx, checkpoint, strategy, device, test_only):
+def eval(ctx, checkpoint, strategy, device, test_only) -> None:
     """Evaluate a trained model on knapsack instances."""
     ctx.obj.get("debug", False)
 
@@ -128,7 +128,7 @@ def eval(ctx, checkpoint, strategy, device, test_only):
 )
 @click.option("--strategy", type=str, default="sampling", help="Decoding strategy")
 @click.option("--device", type=str, default="cpu", help="Device")
-def ood(checkpoint, sizes, strategy, device):
+def ood(checkpoint, sizes, strategy, device) -> None:
     """Evaluate out-of-distribution generalization."""
     from experiments.pipelines.evaluate_ood_pipeline import main as ood_main
 
@@ -160,7 +160,7 @@ def ood(checkpoint, sizes, strategy, device):
 @click.option("--checkpoint", type=click.Path(), help="Existing checkpoint to use")
 @click.option("--seed", type=int, default=1337, help="Random seed")
 @click.option("--device", type=str, default="cpu", help="Device")
-def pipeline(config, strategies, skip_train, checkpoint, seed, device):
+def pipeline(config, strategies, skip_train, checkpoint, seed, device) -> None:
     """Run full experiment pipeline (train + evaluate)."""
     from experiments.pipelines.main import main as pipeline_main
 
@@ -190,7 +190,7 @@ def pipeline(config, strategies, skip_train, checkpoint, seed, device):
 )
 @click.option("--config", type=click.Path(), help="Config file")
 @click.option("--device", type=str, default="cpu", help="Device")
-def ablation(mode, config, device):
+def ablation(mode, config, device) -> None:
     """Run ablation studies (features or architecture)."""
     from experiments.pipelines.ablation_study import main as ablation_main
 
@@ -220,7 +220,7 @@ def ablation(mode, config, device):
 )
 @click.pass_context
 @handle_cli_errors()
-def compare(ctx, checkpoint, baseline):
+def compare(ctx, checkpoint, baseline) -> None:
     """Compare GNN with classical baselines."""
     ctx.obj.get("debug", False)
 
@@ -243,7 +243,7 @@ def compare(ctx, checkpoint, baseline):
 
 @main.command()
 @click.argument("checkpoint", type=click.Path(exists=True))
-def demo(checkpoint):
+def demo(checkpoint) -> None:
     """Run interactive demo with visualization."""
     from experiments.examples.demo import main as demo_main
 
@@ -318,7 +318,7 @@ def validate(
     config,
     device,
     seed,
-):
+) -> None:
     """
     Run comprehensive publication-grade validation.
 

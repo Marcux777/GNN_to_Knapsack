@@ -3,11 +3,11 @@ Knapsack Problem Instance Generator and Exact Solver
 Generates random Knapsack instances and solves them using OR-Tools for generating training labels
 """
 
-import numpy as np
-from typing import Tuple, List, Dict
-import pickle
 import os
+import pickle
 import time
+
+import numpy as np
 
 try:
     # OR-Tools <= 9.13
@@ -29,7 +29,7 @@ class KnapsackInstance:
         self.optimal_value = None
         self.solve_time = None
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"KnapsackInstance(n_items={self.n_items}, capacity={self.capacity})"
 
 
@@ -42,8 +42,8 @@ class KnapsackGenerator:
     def generate_instance(
         self,
         n_items: int,
-        weight_range: Tuple[int, int] = (1, 100),
-        value_range: Tuple[int, int] = (1, 100),
+        weight_range: tuple[int, int] = (1, 100),
+        value_range: tuple[int, int] = (1, 100),
         capacity_ratio: float = 0.5,
     ) -> KnapsackInstance:
         """
@@ -68,8 +68,8 @@ class KnapsackGenerator:
         return KnapsackInstance(weights, values, capacity)
 
     def generate_dataset(
-        self, n_instances: int, n_items_range: Tuple[int, int], **kwargs
-    ) -> List[KnapsackInstance]:
+        self, n_instances: int, n_items_range: tuple[int, int], **kwargs
+    ) -> list[KnapsackInstance]:
         """
         Generate multiple instances with varying sizes
 
@@ -121,23 +121,21 @@ class KnapsackSolver:
         capacities = [instance.capacity]
 
         # Initialize and solve
-        init_fn = getattr(solver, "Init", getattr(solver, "init"))
+        init_fn = getattr(solver, "Init", solver.init)
         init_fn(values, weights, capacities)
 
         set_time_limit_fn = getattr(solver, "SetTimeLimit", getattr(solver, "set_time_limit", None))
         if set_time_limit_fn:
             set_time_limit_fn(time_limit)
 
-        solve_fn = getattr(solver, "Solve", getattr(solver, "solve"))
+        solve_fn = getattr(solver, "Solve", solver.solve)
         start_time = time.perf_counter()
         optimal_value = solve_fn()
         instance.solve_time = time.perf_counter() - start_time
 
         # Extract solution (binary vector)
         solution = np.zeros(instance.n_items, dtype=np.int32)
-        best_contains_fn = getattr(
-            solver, "BestSolutionContains", getattr(solver, "best_solution_contains")
-        )
+        best_contains_fn = getattr(solver, "BestSolutionContains", solver.best_solution_contains)
         for i in range(instance.n_items):
             if best_contains_fn(i):
                 solution[i] = 1
@@ -149,8 +147,8 @@ class KnapsackSolver:
 
     @staticmethod
     def solve_batch(
-        instances: List[KnapsackInstance], time_limit: float = 60.0, verbose: bool = True
-    ) -> List[KnapsackInstance]:
+        instances: list[KnapsackInstance], time_limit: float = 60.0, verbose: bool = True
+    ) -> list[KnapsackInstance]:
         """
         Solve multiple instances
 
@@ -173,7 +171,7 @@ class KnapsackSolver:
 class KnapsackDataset:
     """Dataset manager for Knapsack instances"""
 
-    def __init__(self, instances: List[KnapsackInstance]):
+    def __init__(self, instances: list[KnapsackInstance]):
         self.instances = instances
 
     def __len__(self):
@@ -200,7 +198,7 @@ class KnapsackDataset:
         print(f"Dataset loaded from {filepath} ({len(instances)} instances)")
         return KnapsackDataset(instances)
 
-    def get_statistics(self) -> Dict:
+    def get_statistics(self) -> dict:
         """Get dataset statistics"""
         n_items = [inst.n_items for inst in self.instances]
         capacities = [inst.capacity for inst in self.instances]
@@ -228,10 +226,10 @@ def create_datasets(
     train_size: int = 1000,
     val_size: int = 200,
     test_size: int = 200,
-    n_items_range: Tuple[int, int] = (10, 50),
+    n_items_range: tuple[int, int] = (10, 50),
     seed: int = 42,
     output_dir: str = "data/datasets",
-) -> Tuple[KnapsackDataset, KnapsackDataset, KnapsackDataset]:
+) -> tuple[KnapsackDataset, KnapsackDataset, KnapsackDataset]:
     """
     Create train, validation, and test datasets
 
@@ -293,11 +291,11 @@ def create_datasets(
 # Convenience wrapper functions for backward compatibility
 def generate_knapsack_instance(
     n_items: int,
-    weight_range: Tuple[int, int] = (1, 100),
-    value_range: Tuple[int, int] = (1, 100),
+    weight_range: tuple[int, int] = (1, 100),
+    value_range: tuple[int, int] = (1, 100),
     capacity_ratio: float = 0.5,
     seed: int = 42,
-) -> Dict:
+) -> dict:
     """
     Generate a single random knapsack instance.
 
@@ -334,7 +332,7 @@ def solve_knapsack_dp(
     capacity: int,
     time_limit: float = 60.0,
     seed: int = 0,
-) -> Tuple[float, np.ndarray]:
+) -> tuple[float, np.ndarray]:
     """
     Solve knapsack instance using dynamic programming (via OR-Tools).
 
@@ -360,7 +358,7 @@ def solve_with_ortools(
     capacity: int,
     time_limit: float = 60.0,
     seed: int = 0,
-) -> Tuple[float, np.ndarray]:
+) -> tuple[float, np.ndarray]:
     """
     Solve knapsack problem using OR-Tools.
 

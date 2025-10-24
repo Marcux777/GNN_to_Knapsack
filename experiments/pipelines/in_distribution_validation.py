@@ -13,9 +13,7 @@ Usage:
 """
 
 import argparse
-import json
 import sys
-from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -25,12 +23,19 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from knapsack_gnn.data.generator import KnapsackGenerator, KnapsackSolver, KnapsackDataset
-from knapsack_gnn.data.graph_builder import KnapsackGraphDataset
-from knapsack_gnn.models.pna import create_model
-from knapsack_gnn.decoding.sampling import KnapsackSampler, evaluate_model
-from knapsack_gnn.eval.reporting import save_results_to_json, print_evaluation_summary
-from experiments.analysis.distribution_analysis import analyze_distribution
+from experiments.analysis.distribution_analysis import analyze_distribution  # noqa: E402
+from knapsack_gnn.data.generator import (  # noqa: E402
+    KnapsackDataset,
+    KnapsackGenerator,
+    KnapsackSolver,
+)
+from knapsack_gnn.data.graph_builder import KnapsackGraphDataset  # noqa: E402
+from knapsack_gnn.decoding.sampling import evaluate_model  # noqa: E402
+from knapsack_gnn.eval.reporting import (  # noqa: E402
+    print_evaluation_summary,
+    save_results_to_json,
+)
+from knapsack_gnn.models.pna import create_model  # noqa: E402
 
 
 def generate_size_specific_datasets(
@@ -70,7 +75,7 @@ def generate_size_specific_datasets(
         )
 
         # Solve with OR-Tools
-        print(f"  Solving with OR-Tools...")
+        print("  Solving with OR-Tools...")
         instances = KnapsackSolver.solve_batch(instances, verbose=False)
 
         # Create dataset
@@ -104,7 +109,7 @@ def load_model(
     hidden_dim: int = 64,
     num_layers: int = 3,
     dropout: float = 0.1,
-):
+) -> torch.nn.Module:
     """Load trained model from checkpoint."""
     print(f"Loading model from {checkpoint_dir}...")
 
@@ -126,7 +131,7 @@ def load_model(
     model = model.to(device)
     model.eval()
 
-    print(f"Model loaded successfully")
+    print("Model loaded successfully")
     if "epochs_trained" in state:
         print(f"  Epochs trained: {state['epochs_trained']}")
 
@@ -219,7 +224,7 @@ def combine_results(results_by_size: dict[int, dict]) -> dict:
     Returns:
         Combined results dictionary
     """
-    combined = {
+    combined: dict[str, list] = {
         "gaps": [],
         "sizes": [],
         "values": [],
@@ -252,7 +257,7 @@ def combine_results(results_by_size: dict[int, dict]) -> dict:
     return combined
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="In-distribution validation pipeline")
 
     # Model/checkpoint
@@ -316,7 +321,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def main():
+def main() -> None:
     args = parse_args()
 
     # Setup

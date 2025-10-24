@@ -32,7 +32,7 @@ from knapsack_gnn.models.pna import create_model
 from knapsack_gnn.training.loop import train_model
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     """Parse command-line arguments"""
     parser = argparse.ArgumentParser(description="Publication-Grade Validation Pipeline")
 
@@ -95,7 +95,7 @@ def parse_args():
     return parser.parse_args()
 
 
-def load_model_and_data(checkpoint_path: str, data_dir: str, device: str):
+def load_model_and_data(checkpoint_path: str, data_dir: str, device: str) -> tuple:
     """Load trained model and datasets"""
     print("\n" + "=" * 70)
     print("LOADING MODEL AND DATA")
@@ -138,7 +138,9 @@ def load_model_and_data(checkpoint_path: str, data_dir: str, device: str):
     )
 
 
-def evaluate_gnn(model, test_graph_dataset, strategy: str, n_samples: int, device: str):
+def evaluate_gnn(
+    model, test_graph_dataset, strategy: str, n_samples: int, device: str
+) -> np.ndarray:
     """Evaluate GNN model"""
     print("\n" + "=" * 70)
     print("EVALUATING GNN MODEL")
@@ -161,7 +163,7 @@ def evaluate_gnn(model, test_graph_dataset, strategy: str, n_samples: int, devic
     return np.array(results["gaps"])
 
 
-def main():
+def main() -> None:
     """Main validation pipeline"""
     args = parse_args()
 

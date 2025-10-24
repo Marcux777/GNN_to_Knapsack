@@ -117,9 +117,9 @@ class KnapsackSolver:
         solver = knapsack_solver.KnapsackSolver(solver_type, "KnapsackSolver")
 
         # Convert to lists (OR-Tools requirement)
-        weights = [instance.weights.tolist()]
-        values = instance.values.tolist()
-        capacities = [instance.capacity]
+        values = instance.values.astype(int).tolist()
+        weights = [instance.weights.astype(int).tolist()]
+        capacities = [int(instance.capacity)]
 
         # Initialize and solve
         init_fn = getattr(solver, "Init", solver.init)

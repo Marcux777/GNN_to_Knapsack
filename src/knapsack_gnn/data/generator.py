@@ -174,13 +174,13 @@ class KnapsackDataset:
     def __init__(self, instances: list[KnapsackInstance]):
         self.instances = instances
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.instances)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int) -> KnapsackInstance:
         return self.instances[idx]
 
-    def save(self, filepath: str):
+    def save(self, filepath: str) -> None:
         """Save dataset to file"""
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
         with open(filepath, "wb") as f:

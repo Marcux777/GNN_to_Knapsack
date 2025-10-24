@@ -16,7 +16,7 @@ class HeterogeneousEncoder(nn.Module):
     Same as PNA/GCN version
     """
 
-    def __init__(self, item_input_dim: int, constraint_input_dim: int, hidden_dim: int):
+    def __init__(self, item_input_dim: int, constraint_input_dim: int, hidden_dim: int) -> None:
         super().__init__()
 
         self.item_encoder = nn.Sequential(
@@ -67,7 +67,7 @@ class KnapsackGAT(nn.Module):
         num_layers: int = 3,
         dropout: float = 0.1,
         num_heads: int = 4,
-    ):
+    ) -> None:
         """
         Args:
             item_input_dim: Input dimension for item features (default: 2)
@@ -180,7 +180,9 @@ class KnapsackGAT(nn.Module):
         probs = self.forward(data)
         return (probs >= threshold).float()
 
-    def get_attention_weights(self, data: Data, layer_idx: int = 0):
+    def get_attention_weights(
+        self, data: Data, layer_idx: int = 0
+    ) -> tuple[torch.Tensor | None, torch.Tensor | None]:
         """
         Get attention weights from a specific layer
 

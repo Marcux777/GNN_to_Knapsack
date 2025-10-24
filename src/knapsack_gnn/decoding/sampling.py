@@ -6,14 +6,15 @@ Vectorized sampling utilities, Lagrangian decoding and latency-oriented helpers.
 import math
 import os
 import time
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from collections.abc import Sequence
 
 import numpy as np
 import torch
 from torch import Tensor
 from torch_geometric.data import Data
-from knapsack_gnn.solvers.cp_sat import solve_knapsack_warm_start
+
 from knapsack_gnn.decoding.repair import SolutionRepairer
+from knapsack_gnn.solvers.cp_sat import solve_knapsack_warm_start
 
 try:
     from scipy import stats as scipy_stats  # type: ignore
@@ -26,11 +27,25 @@ class KnapsackSampler:
     Sampler for generating Knapsack solutions from GNN probability outputs
     """
 
+    @staticmethod
+    def _get_safe_device() -> str:
+        """Get a safe CUDA device or fallback to CPU if CUDA is incompatible."""
+        if not torch.cuda.is_available():
+            return "cpu"
+
+        try:
+            # Try to create a small tensor on CUDA to check compatibility
+            _ = torch.zeros(1, device="cuda")
+            return "cuda"
+        except (RuntimeError, AssertionError):
+            # CUDA is available but incompatible (e.g., wrong compute capability)
+            return "cpu"
+
     def __init__(
         self,
         model,
-        device: str = "cuda" if torch.cuda.is_available() else "cpu",
-        num_threads: Optional[int] = None,
+        device: str | None = None,
+        num_threads: int | None = None,
         compile_model: bool = False,
         quantize: bool = False,
         quantize_dtype=torch.qint8,
@@ -38,12 +53,15 @@ class KnapsackSampler:
         """
         Args:
             model: Trained KnapsackPNA model
-            device: Device to run inference on
+            device: Device to run inference on (default: auto-detect safe device)
             num_threads: Optional cap for intra-op threads (latency tuning)
             compile_model: Whether to compile the model with torch.compile
             quantize: Apply dynamic quantization to Linear layers
             quantize_dtype: Quantized dtype (default: torch.qint8)
         """
+        if device is None:
+            device = self._get_safe_device()
+
         if num_threads is not None:
             torch.set_num_threads(int(num_threads))
             os.environ.setdefault("OMP_NUM_THREADS", str(num_threads))
@@ -127,7 +145,7 @@ class KnapsackSampler:
 
     def threshold_decode(
         self, probs: torch.Tensor, data: Data, threshold: float = 0.5
-    ) -> Tuple[np.ndarray, float, bool]:
+    ) -> tuple[np.ndarray, float, bool]:
         """
         Simple threshold-based decoding
 
@@ -159,7 +177,7 @@ class KnapsackSampler:
 
     def sample_solutions(
         self, probs: torch.Tensor, data: Data, n_samples: int = 100, temperature: float = 1.0
-    ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
         """
         Vectorized sampling of multiple solutions from probability distribution.
 
@@ -255,7 +273,7 @@ class KnapsackSampler:
 
     def adaptive_threshold(
         self, probs: torch.Tensor, data: Data, n_trials: int = 20
-    ) -> Tuple[np.ndarray, float, float]:
+    ) -> tuple[np.ndarray, float, float]:
         """
         Find best threshold adaptively
 
@@ -297,7 +315,7 @@ class KnapsackSampler:
     def _select_lagrangian(
         values: np.ndarray,
         weights: np.ndarray,
-        probs: Optional[np.ndarray],
+        probs: np.ndarray | None,
         lam: float,
         bias: float,
     ) -> np.ndarray:
@@ -319,7 +337,7 @@ class KnapsackSampler:
         max_iter: int = 30,
         tol: float = 1e-4,
         bias: float = 0.0,
-    ) -> Tuple[np.ndarray, float, Dict[str, float]]:
+    ) -> tuple[np.ndarray, float, dict[str, float]]:
         """
         Decode solution via Lagrangian relaxation with bisection on lambda.
 
@@ -361,7 +379,8 @@ class KnapsackSampler:
         fallback_value = -np.inf
 
         iterations = 0
-        for iterations in range(1, max_iter + 1):
+        for iteration in range(1, max_iter + 1):
+            iterations = iteration
             lam = 0.5 * (lam_low + lam_high)
             solution = self._select_lagrangian(values, weights, probs_np, lam, bias)
             weight = float(np.dot(solution, weights))
@@ -410,11 +429,11 @@ class KnapsackSampler:
         probs: torch.Tensor,
         data: Data,
         temperature: float = 1.0,
-        schedule: Optional[Sequence[int]] = None,
+        schedule: Sequence[int] | None = None,
         tolerance: float = 1e-3,
-        max_samples: Optional[int] = None,
-        target_value: Optional[float] = None,
-    ) -> Dict:
+        max_samples: int | None = None,
+        target_value: float | None = None,
+    ) -> dict:
         """
         Vectorized sampling with adaptive stopping.
 
@@ -455,9 +474,11 @@ class KnapsackSampler:
 
             if max_samples is not None:
                 remaining = max_samples - total_samples
+                print(f"remaining: {remaining}")
                 if remaining <= 0:
                     break
                 batch_size = min(batch_size, remaining)
+                print(f"batch_size: {batch_size}")
 
             sols, vals, feas_mask, weights = self.sample_solutions(
                 probs=probs, data=data, n_samples=batch_size, temperature=temperature
@@ -529,12 +550,12 @@ class KnapsackSampler:
         probs: torch.Tensor,
         data: Data,
         temperature: float,
-        schedule: Optional[Sequence[int]],
+        schedule: Sequence[int] | None,
         tolerance: float,
-        max_samples: Optional[int],
-        target_value: Optional[float],
+        max_samples: int | None,
+        target_value: float | None,
         fix_threshold: float,
-    ) -> Dict:
+    ) -> dict:
         """
         Generate an initial solution, hints, and fixed variables for warm-start ILP.
         """
@@ -552,7 +573,7 @@ class KnapsackSampler:
         probs_np = probs.cpu().numpy()
 
         fix_threshold = float(fix_threshold)
-        fix_map: Dict[int, int] = {}
+        fix_map: dict[int, int] = {}
         if fix_threshold > 0:
             high_cut = min(max(fix_threshold, 0.5), 1.0)
             low_cut = 1.0 - high_cut
@@ -575,7 +596,7 @@ class KnapsackSampler:
         n_samples: int = 100,
         temperature: float = 1.0,
         **kwargs,
-    ) -> Dict:
+    ) -> dict:
         """
         Solve Knapsack instance using specified strategy
 
@@ -935,9 +956,9 @@ def evaluate_model(
     dataset,
     strategy: str = "sampling",
     device: str = "cuda" if torch.cuda.is_available() else "cpu",
-    sampler_kwargs: Optional[Dict] = None,
+    sampler_kwargs: dict | None = None,
     **kwargs,
-) -> Dict:
+) -> dict:
     """
     Evaluate model on a dataset
 
@@ -1153,7 +1174,7 @@ def evaluate_model(
         results["p99_ilp_time"] = None
 
     if results["ilp_statuses"]:
-        status_counts: Dict[str, int] = {}
+        status_counts: dict[str, int] = {}
         for status in results["ilp_statuses"]:
             status_counts[status] = status_counts.get(status, 0) + 1
         results["ilp_status_counts"] = status_counts
@@ -1180,14 +1201,14 @@ def evaluate_model(
             print(f"T-test vs 0 Gap: t={results['gap_t_stat']:.3f}, p={results['gap_p_value']:.4f}")
 
     if results["mean_approx_ratio"] is not None:
-        print(f"\nApproximation Ratio:")
+        print("\nApproximation Ratio:")
         print(f"  Mean:   {results['mean_approx_ratio']:.4f}")
         print(f"  Median: {results['median_approx_ratio']:.4f}")
         print(f"  Min:    {results['min_approx_ratio']:.4f}")
         print(f"  Max:    {results['max_approx_ratio']:.4f}")
 
     if results["mean_inference_time"] is not None:
-        print(f"\nInference Timing:")
+        print("\nInference Timing:")
         print(f"  Mean:   {results['mean_inference_time'] * 1000:.2f} ms")
         print(f"  Median: {results['median_inference_time'] * 1000:.2f} ms")
         print(f"  P90:    {results['p90_inference_time'] * 1000:.2f} ms")
@@ -1198,12 +1219,12 @@ def evaluate_model(
             print("  Throughput: N/A")
 
     if results["mean_solver_time"] is not None:
-        print(f"\nExact Solver Timing:")
+        print("\nExact Solver Timing:")
         print(f"  Mean:   {results['mean_solver_time'] * 1000:.2f} ms")
         print(f"  Median: {results['median_solver_time'] * 1000:.2f} ms")
 
     if results["mean_speedup"] is not None:
-        print(f"\nSpeedup vs Exact Solver:")
+        print("\nSpeedup vs Exact Solver:")
         print(f"  Mean:   {results['mean_speedup']:.2f}x")
         print(f"  Median: {results['median_speedup']:.2f}x")
         print(f"  Min:    {results['min_speedup']:.2f}x")
@@ -1218,12 +1239,12 @@ def evaluate_model(
         results["median_samples_used"] = None
 
     if results["mean_samples_used"] is not None:
-        print(f"\nSampling Stats:")
+        print("\nSampling Stats:")
         print(f"  Mean samples used: {results['mean_samples_used']:.2f}")
         print(f"  Median samples used: {results['median_samples_used']:.2f}")
 
     if results["mean_ilp_time"] is not None:
-        print(f"\nWarm-Start ILP Timing:")
+        print("\nWarm-Start ILP Timing:")
         print(f"  Mean:   {results['mean_ilp_time'] * 1000:.2f} ms")
         print(f"  Median: {results['median_ilp_time'] * 1000:.2f} ms")
         print(f"  P90:    {results['p90_ilp_time'] * 1000:.2f} ms")
@@ -1277,7 +1298,7 @@ def vectorized_sampling(
     capacity: float,
     n_samples: int = 100,
     temperature: float = 1.0,
-) -> Tuple[np.ndarray, float, bool]:
+) -> tuple[np.ndarray, float, bool]:
     """
     Vectorized sampling with feasibility checking.
 

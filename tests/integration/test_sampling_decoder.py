@@ -5,7 +5,12 @@ Tests for sampling-based decoder.
 import numpy as np
 import torch
 
-from knapsack_gnn.decoding.sampling import sample_solutions, vectorized_sampling
+from knapsack_gnn.decoding.sampling import sample_solutions
+
+
+class DummyModel(torch.nn.Module):
+    def forward(self, data):
+        return torch.sigmoid(torch.randn(data.n_items))
 
 
 class TestSamplingDecoder:
@@ -17,7 +22,7 @@ class TestSamplingDecoder:
         logits = torch.randn(5)
         n_samples = 10
 
-        solutions = sample_solutions(logits, n_samples=n_samples, temperature=1.0)
+        solutions = sample_solutions(logits, n_samples=n_samples, temperature=1.0).long()
 
         assert solutions.shape == (n_samples, 5), f"Expected shape (10, 5), got {solutions.shape}"
         assert solutions.dtype == torch.long or solutions.dtype == torch.int32
@@ -87,17 +92,35 @@ class TestSamplingDecoder:
                 f"Gap increased from {gaps[i]:.2f}% to {gaps[i + 1]:.2f}% with more samples"
             )
 
-    def test_vectorized_sampling_schedule(self):
+    def test_vectorized_sampling_schedule(self, small_knapsack_instance):
         """Test vectorized sampling with adaptive schedule."""
-        logits = torch.randn(8)
+        from torch_geometric.data import Data
+
+        from knapsack_gnn.decoding.sampling import KnapsackSampler
+
+        inst = small_knapsack_instance
+        logits = torch.randn(inst["n_items"])
         schedule = [4, 8, 16]
         max_samples = 16
-
-        solutions, n_samples_used = vectorized_sampling(
-            logits, schedule=schedule, max_samples=max_samples, temperature=1.0
+        sampler = KnapsackSampler(model=DummyModel(), device="cpu")
+        data = Data(
+            item_weights=torch.from_numpy(inst["weights"]),
+            item_values=torch.from_numpy(inst["values"]),
+            capacity=inst["capacity"],
+            n_items=inst["n_items"],
         )
 
-        assert solutions.shape[1] == 8, "Solutions should have same length as logits"
+        result = sampler.anytime_sampling(
+            probs=torch.sigmoid(logits),
+            data=data,
+            schedule=schedule,
+            max_samples=max_samples,
+            temperature=1.0,
+        )
+        solution = result["solution"]
+        n_samples_used = result["samples_used"]
+
+        assert solution.shape[0] == inst["n_items"], "Solutions should have same length as logits"
         assert n_samples_used <= max_samples, "Should not exceed max_samples"
         assert n_samples_used > 0, "Should use at least one sample"
 
@@ -108,10 +131,10 @@ class TestSamplingDecoder:
         logits = torch.randn(10)
 
         set_seed(42)
-        solutions1 = sample_solutions(logits, n_samples=20, temperature=1.0)
+        solutions1 = sample_solutions(logits, n_samples=20, temperature=1.0).long()
 
         set_seed(42)
-        solutions2 = sample_solutions(logits, n_samples=20, temperature=1.0)
+        solutions2 = sample_solutions(logits, n_samples=20, temperature=1.0).long()
 
         assert torch.equal(solutions1, solutions2), (
             "Sampling should be deterministic with same seed"
@@ -142,30 +165,66 @@ class TestSamplingDecoder:
 class TestAdaptiveSampling:
     """Test suite for adaptive sampling strategies."""
 
-    def test_early_stopping_logic(self):
+    def test_early_stopping_logic(self, small_knapsack_instance):
         """Test that early stopping works when solution converges."""
+        from torch_geometric.data import Data
+
+        from knapsack_gnn.decoding.sampling import KnapsackSampler
+
+        inst = small_knapsack_instance
         # Create logits that strongly favor a specific solution
-        logits = torch.tensor([10.0, 10.0, -10.0, -10.0, 10.0])
+        optimal_sol = torch.tensor(inst["optimal_solution"], dtype=torch.float32)
+        logits = (optimal_sol * 100) - (1 - optimal_sol) * 100
 
         schedule = [8, 16, 32, 64]
-        solutions, n_used = vectorized_sampling(
-            logits,
+
+        sampler = KnapsackSampler(model=DummyModel(), device="cpu")
+        data = Data(
+            item_weights=torch.from_numpy(inst["weights"]),
+            item_values=torch.from_numpy(inst["values"]),
+            capacity=inst["capacity"],
+            n_items=inst["n_items"],
+        )
+
+        result = sampler.anytime_sampling(
+            probs=torch.sigmoid(logits),
+            data=data,
             schedule=schedule,
             max_samples=64,
             temperature=0.1,  # Low temp for convergence
+            target_value=inst["optimal_value"],
         )
+        n_used = result["samples_used"]
 
         # With strong signal and low temperature, should converge early
         assert n_used < 64, "Should stop early when converged"
 
-    def test_schedule_progression(self):
+    def test_schedule_progression(self, small_knapsack_instance):
         """Test that sampling follows the schedule."""
-        logits = torch.randn(6)
-        schedule = [4, 8, 16]
+        from torch_geometric.data import Data
 
-        solutions, n_used = vectorized_sampling(
-            logits, schedule=schedule, max_samples=16, temperature=1.0
+        from knapsack_gnn.decoding.sampling import KnapsackSampler
+
+        inst = small_knapsack_instance
+        optimal_sol = torch.tensor(inst["optimal_solution"], dtype=torch.float32)
+        logits = (optimal_sol * 0.1) + (1 - optimal_sol) * 0.01
+        schedule = [4, 8, 16]
+        sampler = KnapsackSampler(model=DummyModel(), device="cpu")
+        data = Data(
+            item_weights=torch.from_numpy(inst["weights"]),
+            item_values=torch.from_numpy(inst["values"]),
+            capacity=inst["capacity"],
+            n_items=inst["n_items"],
         )
+
+        result = sampler.anytime_sampling(
+            probs=torch.sigmoid(logits),
+            data=data,
+            schedule=schedule,
+            max_samples=16,
+            temperature=1.0,
+        )
+        n_used = result["samples_used"]
 
         # Should use one of the schedule values
         assert n_used in schedule or n_used == 16, (

@@ -14,7 +14,6 @@ These methods are designed to:
 """
 
 import numpy as np
-from typing import Tuple, Optional
 
 
 class SolutionRepairer:
@@ -34,7 +33,7 @@ class SolutionRepairer:
     def check_feasibility(self, solution: np.ndarray, weights: np.ndarray, capacity: float) -> bool:
         """Check if solution is feasible (doesn't exceed capacity)."""
         total_weight = np.sum(solution * weights)
-        return total_weight <= capacity + 1e-6  # Small tolerance for floating point
+        return bool(total_weight <= capacity + 1e-6)  # Small tolerance for floating point
 
     def compute_value(self, solution: np.ndarray, values: np.ndarray) -> float:
         """Compute total value of solution."""
@@ -163,8 +162,8 @@ class SolutionRepairer:
         weights: np.ndarray,
         values: np.ndarray,
         capacity: float,
-        max_iterations: Optional[int] = None,
-    ) -> Tuple[np.ndarray, int]:
+        max_iterations: int | None = None,
+    ) -> tuple[np.ndarray, int]:
         """
         1-swap local search: try swapping each item in/out.
 
@@ -187,7 +186,7 @@ class SolutionRepairer:
         current_value = self.compute_value(solution, values)
         n_improvements = 0
 
-        for iteration in range(max_iterations):
+        for _iteration in range(max_iterations):
             improved = False
 
             # Try removing each selected item
@@ -238,8 +237,8 @@ class SolutionRepairer:
         weights: np.ndarray,
         values: np.ndarray,
         capacity: float,
-        max_iterations: Optional[int] = None,
-    ) -> Tuple[np.ndarray, int]:
+        max_iterations: int | None = None,
+    ) -> tuple[np.ndarray, int]:
         """
         2-opt local search: try swapping pairs of items (1-in, 1-out).
 
@@ -263,7 +262,7 @@ class SolutionRepairer:
         selected = np.where(solution == 1)[0]
         unselected = np.where(solution == 0)[0]
 
-        for iteration in range(max_iterations):
+        for _iteration in range(max_iterations):
             improved = False
 
             # Try swapping each (in, out) pair
@@ -303,7 +302,7 @@ class SolutionRepairer:
         capacity: float,
         use_1swap: bool = True,
         use_2opt: bool = False,
-    ) -> Tuple[np.ndarray, dict]:
+    ) -> tuple[np.ndarray, dict]:
         """
         Full pipeline: repair + local search.
 
@@ -403,7 +402,7 @@ def improve_solution(
     values: np.ndarray,
     capacity: float,
     max_iterations: int = 50,
-) -> Tuple[np.ndarray, int]:
+) -> tuple[np.ndarray, int]:
     """
     Improve a feasible solution using local search.
 

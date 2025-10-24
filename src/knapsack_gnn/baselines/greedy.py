@@ -3,9 +3,10 @@ Greedy Solver for Knapsack Problem
 Uses value-to-weight ratio heuristic
 """
 
-import numpy as np
 import time
-from typing import Dict, Tuple
+
+import numpy as np
+
 from knapsack_gnn.data.generator import KnapsackInstance
 
 
@@ -19,10 +20,10 @@ class GreedySolver:
     3. Greedily add items until capacity is reached
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
-    def solve(self, instance: KnapsackInstance) -> Dict:
+    def solve(self, instance: KnapsackInstance) -> dict:
         """
         Solve knapsack instance using greedy heuristic
 
@@ -99,7 +100,7 @@ class GreedySolver:
         return results
 
     @staticmethod
-    def evaluate_results(results: list) -> Dict:
+    def evaluate_results(results: list) -> dict:
         """
         Compute aggregate statistics from results
 
@@ -135,10 +136,10 @@ class RandomSolver:
     Randomly selects items until capacity is reached
     """
 
-    def __init__(self, seed: int = 42):
+    def __init__(self, seed: int = 42) -> None:
         self.rng = np.random.RandomState(seed)
 
-    def solve(self, instance: KnapsackInstance, max_attempts: int = 100) -> Dict:
+    def solve(self, instance: KnapsackInstance, max_attempts: int = 100) -> dict:
         """
         Generate random feasible solution
 
@@ -228,7 +229,7 @@ if __name__ == "__main__":
     greedy_solver = GreedySolver()
     result = greedy_solver.solve(instance)
 
-    print(f"\nGreedy Solution:")
+    print("\nGreedy Solution:")
     print(f"  Value: {result['value']}")
     print(f"  Optimality gap: {result['optimality_gap']:.2f}%")
     print(f"  Feasible: {result['is_feasible']}")
@@ -238,7 +239,7 @@ if __name__ == "__main__":
     random_solver = RandomSolver(seed=42)
     result_random = random_solver.solve(instance)
 
-    print(f"\nRandom Solution:")
+    print("\nRandom Solution:")
     print(f"  Value: {result_random['value']}")
     print(f"  Optimality gap: {result_random['optimality_gap']:.2f}%")
     print(f"  Feasible: {result_random['is_feasible']}")
@@ -246,7 +247,7 @@ if __name__ == "__main__":
 
 
 # Convenience wrapper functions for backward compatibility
-def greedy_knapsack(instance: KnapsackInstance) -> Dict:
+def greedy_knapsack(instance: KnapsackInstance) -> dict:
     """
     Solve knapsack instance using greedy heuristic.
 
@@ -260,7 +261,7 @@ def greedy_knapsack(instance: KnapsackInstance) -> Dict:
     return solver.solve(instance)
 
 
-def random_knapsack(instance: KnapsackInstance, seed: int = 42, max_attempts: int = 100) -> Dict:
+def random_knapsack(instance: KnapsackInstance, seed: int = 42, max_attempts: int = 100) -> dict:
     """
     Solve knapsack instance using random sampling.
 

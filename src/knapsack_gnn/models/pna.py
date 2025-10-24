@@ -20,11 +20,16 @@ References:
     https://arxiv.org/abs/2004.05718
 """
 
+from typing import TYPE_CHECKING
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.data import Batch, Data
 from torch_geometric.nn import PNAConv
+
+if TYPE_CHECKING:
+    from knapsack_gnn.data.graph_builder import KnapsackGraphDataset
 
 
 class HeterogeneousEncoder(nn.Module):
@@ -149,8 +154,8 @@ class KnapsackPNA(nn.Module):
         hidden_dim: int = 64,
         num_layers: int = 3,
         dropout: float = 0.1,
-        aggregators: list[str] = None,
-        scalers: list[str] = None,
+        aggregators: list[str] | None = None,
+        scalers: list[str] | None = None,
         deg: torch.Tensor | None = None,
     ):
         """Initialize the KnapsackPNA model.
@@ -269,7 +274,9 @@ class KnapsackPNA(nn.Module):
         return (probs >= threshold).float()
 
 
-def compute_degree_histogram(dataset, max_degree: int = 100) -> torch.Tensor:
+def compute_degree_histogram(
+    dataset: "KnapsackGraphDataset", max_degree: int = 100
+) -> torch.Tensor:
     """
     Compute degree histogram for PNA normalization
 
@@ -335,7 +342,7 @@ class KnapsackPNAWithBatch(KnapsackPNA):
 
 
 def create_model(
-    dataset, hidden_dim: int = 64, num_layers: int = 3, dropout: float = 0.1
+    dataset: "KnapsackGraphDataset", hidden_dim: int = 64, num_layers: int = 3, dropout: float = 0.1
 ) -> KnapsackPNA:
     """
     Factory function to create KnapsackPNA model with computed degree histogram

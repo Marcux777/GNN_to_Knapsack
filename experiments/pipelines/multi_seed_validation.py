@@ -12,22 +12,21 @@ Usage:
 """
 
 import argparse
-import os
-import sys
-import torch
-import numpy as np
 import json
-import matplotlib.pyplot as plt
+import os
 from datetime import datetime
-from typing import Optional
 
-from knapsack_gnn.data.generator import create_datasets, KnapsackDataset
+import matplotlib.pyplot as plt
+import numpy as np
+import torch
+
+from knapsack_gnn.analysis.stats import StatisticalAnalyzer
+from knapsack_gnn.data.generator import KnapsackDataset
 from knapsack_gnn.data.graph_builder import KnapsackGraphDataset
+from knapsack_gnn.decoding.sampling import evaluate_model
 from knapsack_gnn.models.pna import create_model
 from knapsack_gnn.training.loop import train_model
-from knapsack_gnn.decoding.sampling import evaluate_model
 from knapsack_gnn.training.metrics import save_results_to_json
-from knapsack_gnn.analysis.stats import StatisticalAnalyzer
 
 
 def parse_args():
@@ -177,7 +176,7 @@ def parse_args():
     return args
 
 
-def parse_schedule(schedule_str: Optional[str]) -> Optional[tuple[int, ...]]:
+def parse_schedule(schedule_str: str | None) -> tuple[int, ...] | None:
     """Convert comma-separated schedule string to tuple of ints."""
     if schedule_str is None:
         return None
@@ -204,7 +203,7 @@ def resolve_device(device: str) -> str:
     return device
 
 
-def train_with_seed(seed: int, args, shared_data=None) -> Dict:
+def train_with_seed(seed: int, args: argparse.Namespace, shared_data: tuple | None = None) -> dict:
     """
     Train model with a specific seed
 
@@ -276,7 +275,7 @@ def train_with_seed(seed: int, args, shared_data=None) -> Dict:
     training_time = time.time() - train_start
 
     # Evaluate on test set
-    print(f"\nEvaluating on test set...")
+    print("\nEvaluating on test set...")
 
     strategy_kwargs = {}
     if args.strategy == "sampling":
@@ -414,7 +413,7 @@ def aggregate_results(all_results: list[dict]) -> dict:
     return aggregated
 
 
-def print_aggregated_results(aggregated: Dict):
+def print_aggregated_results(aggregated: dict):
     """Print formatted aggregated results"""
     print("\n" + "=" * 80)
     print("AGGREGATED RESULTS")
@@ -465,7 +464,7 @@ def print_aggregated_results(aggregated: Dict):
     print()
 
 
-def plot_seed_comparison(aggregated: Dict, output_dir: str):
+def plot_seed_comparison(aggregated: dict, output_dir: str):
     """Create visualization comparing results across seeds"""
     print("\nGenerating seed comparison plots...")
 
@@ -495,7 +494,7 @@ def plot_seed_comparison(aggregated: Dict, output_dir: str):
         aggregated["mean_gap"]["mean"] + aggregated["mean_gap"]["std"],
         alpha=0.2,
         color="red",
-        label=f"±1 std",
+        label="±1 std",
     )
     ax.set_ylabel("Mean Optimality Gap (%)", fontsize=12)
     ax.set_xlabel("Seed", fontsize=12)
@@ -573,7 +572,7 @@ def main():
     print("=" * 80)
     print("MULTI-SEED VALIDATION")
     print("=" * 80)
-    print(f"\nConfiguration:")
+    print("\nConfiguration:")
     for arg, value in vars(args).items():
         if arg != "seeds":
             print(f"  {arg}: {value}")
@@ -638,7 +637,7 @@ def main():
     print("MULTI-SEED VALIDATION COMPLETED")
     print("=" * 80)
     print(f"\nResults directory: {args.output_dir}")
-    print(f"\nKey Findings:")
+    print("\nKey Findings:")
     mg = aggregated["mean_gap"]
     print(f"  ✓ Test Mean Gap: {mg['mean']:.2f}% ± {mg['std']:.2f}%")
     print(f"  ✓ 95% CI: [{mg['ci_95'][0]:.2f}%, {mg['ci_95'][1]:.2f}%]")

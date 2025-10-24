@@ -3,17 +3,18 @@ Graph Builder for Knapsack Problem
 Converts Knapsack instances into tripartite graphs for GNN processing
 """
 
-import torch
+import matplotlib.pyplot as plt
 import numpy as np
+import torch
 from torch_geometric.data import Data, Dataset
-from typing import List
-from .generator import KnapsackInstance, KnapsackDataset
+
+from .generator import KnapsackDataset, KnapsackInstance
 
 
 class KnapsackGraphBuilder:
     """Converts Knapsack instances to PyTorch Geometric graph format"""
 
-    def __init__(self, normalize_features: bool = True):
+    def __init__(self, normalize_features: bool = True) -> None:
         """
         Args:
             normalize_features: Whether to normalize node features
@@ -99,14 +100,12 @@ class KnapsackGraphBuilder:
             item_weights=torch.tensor(instance.weights, dtype=torch.float32),
             item_values=torch.tensor(instance.values, dtype=torch.float32),
             optimal_value=instance.optimal_value if instance.optimal_value is not None else 0,
-            solve_time=float(instance.solve_time)
-            if getattr(instance, "solve_time", None) is not None
-            else None,
+            solve_time=float(instance.solve_time) if instance.solve_time is not None else 0.0,
         )
 
         return data
 
-    def build_batch(self, instances: List[KnapsackInstance]) -> List[Data]:
+    def build_batch(self, instances: list[KnapsackInstance]) -> list[Data]:
         """
         Convert multiple instances to graphs
 
@@ -124,7 +123,7 @@ class KnapsackGraphDataset(Dataset):
     PyTorch Geometric Dataset wrapper for Knapsack graphs
     """
 
-    def __init__(self, knapsack_dataset: KnapsackDataset, normalize_features: bool = True):
+    def __init__(self, knapsack_dataset: KnapsackDataset, normalize_features: bool = True) -> None:
         """
         Args:
             knapsack_dataset: KnapsackDataset containing instances
@@ -139,20 +138,20 @@ class KnapsackGraphDataset(Dataset):
         self.graphs = self.graph_builder.build_batch(knapsack_dataset.instances)
         print("Graphs built successfully!")
 
-    def len(self):
+    def len(self) -> int:
         return len(self.graphs)
 
-    def get(self, idx):
+    def get(self, idx) -> Data:
         return self.graphs[idx]
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.graphs)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx) -> Data:
         return self.graphs[idx]
 
 
-def visualize_graph(data: Data, title: str = "Knapsack Graph"):
+def visualize_graph(data: Data, title: str = "Knapsack Graph") -> plt:
     """
     Visualize a Knapsack graph using networkx and matplotlib
 
@@ -161,7 +160,6 @@ def visualize_graph(data: Data, title: str = "Knapsack Graph"):
         title: Plot title
     """
     import networkx as nx
-    import matplotlib.pyplot as plt
 
     # Create networkx graph
     G = nx.Graph()
@@ -235,7 +233,7 @@ if __name__ == "__main__":
     builder = KnapsackGraphBuilder(normalize_features=True)
     graph = builder.build_graph(instance)
 
-    print(f"\nGraph properties:")
+    print("\nGraph properties:")
     print(f"  Number of nodes: {graph.x.shape[0]}")
     print(f"  Number of edges: {graph.edge_index.shape[1]}")
     print(f"  Node features shape: {graph.x.shape}")

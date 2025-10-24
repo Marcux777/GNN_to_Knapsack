@@ -111,7 +111,7 @@ def validate_config_file(config_path: str | Path) -> tuple[bool, str]:
         return False, f"✗ Unexpected error: {e}"
 
 
-def config_to_dict(config: ExperimentConfig) -> dict[str, Any]:
+def config_to_dict(config: ExperimentConfig) -> Any:
     """
     Convert ExperimentConfig to dictionary.
 

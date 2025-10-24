@@ -43,7 +43,7 @@ class AcademicReporter:
         # Configure matplotlib for publication quality
         self._configure_matplotlib()
 
-    def _configure_matplotlib(self):
+    def _configure_matplotlib(self) -> None:
         """Configure matplotlib for publication-quality figures"""
         # Use LaTeX if available
         try:
@@ -82,7 +82,7 @@ class AcademicReporter:
     def generate_comparison_table(
         self,
         results: dict[str, dict],
-        metrics: list[str] = None,
+        metrics: list[str] | None = None,
         caption: str = "Performance comparison",
         label: str = "tab:comparison",
         highlight_best: bool = True,
@@ -290,7 +290,9 @@ class AcademicReporter:
 
         return "\n".join(latex)
 
-    def save_publication_figure(self, fig: plt.Figure, filepath: str, formats: list[str] = None):
+    def save_publication_figure(
+        self, fig: plt.Figure, filepath: str | Path, formats: list[str] | None = None
+    ) -> None:
         """
         Save figure in publication-ready formats
 
@@ -301,11 +303,11 @@ class AcademicReporter:
         """
         if formats is None:
             formats = ["pdf", "png"]
-        filepath = Path(filepath)
-        filepath.parent.mkdir(parents=True, exist_ok=True)
+        path = Path(filepath)
+        path.parent.mkdir(parents=True, exist_ok=True)
 
         for fmt in formats:
-            save_path = filepath.with_suffix(f".{fmt}")
+            save_path = path.with_suffix(f".{fmt}")
             fig.savefig(save_path, dpi=self.dpi, bbox_inches="tight", format=fmt)
             print(f"Saved figure: {save_path}")
 

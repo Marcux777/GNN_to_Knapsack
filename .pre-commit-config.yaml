@@ -39,13 +39,18 @@ repos:
         exclude: ^(checkpoints/|data/|\.pytest_cache/)
         args: [--markdown-linebreak-ext=md]
       - id: check-merge-conflict
-      - id: check-yaml
-        exclude: ^(checkpoints/|data/)
+
       - id: check-toml
       - id: check-added-large-files
         args: [--maxkb=1000]
       - id: mixed-line-ending
         args: [--fix=lf]
+
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.35.1
+    hooks:
+      - id: yamllint
+        files: .yamllint mkdocs.yml
 
   # Commit message linting (Conventional Commits)
   - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
@@ -65,30 +70,30 @@ repos:
       # Type checking with mypy
       - id: mypy
         name: mypy type check (pre-push)
-        entry: bash -c "mypy src/knapsack_gnn/ experiments/ --ignore-missing-imports || exit 1"
-        language: system
+        entry: mypy src/knapsack_gnn/ experiments/ --ignore-missing-imports
+        language: python
         pass_filenames: false
         stages: [pre-push]
-        verbose: true
+        additional_dependencies: [mypy]
 
       # Run quick tests (exclude slow tests)
       - id: pytest-quick
         name: pytest quick tests (pre-push)
-        entry: bash -c "pytest tests/ -q -m 'not slow' --maxfail=3 || exit 1"
-        language: system
+        entry: pytest tests/ -q -m 'not slow' --maxfail=3
+        language: python
         pass_filenames: false
         stages: [pre-push]
-        verbose: true
+        additional_dependencies: [pytest, pytest-cov, numpy, torch, ortools, torch-geometric]
 
       # Check dependency drift
       - id: check-deps
         name: check dependency sync (pre-push)
-        entry: make check-deps
-        language: system
+        entry: uv pip check
+        language: python
         pass_filenames: false
         stages: [pre-push]
         files: ^(pyproject\.toml|requirements.*\.txt)$
-        verbose: true
+        additional_dependencies: [uv]
 
 # Global settings
 default_language_version:

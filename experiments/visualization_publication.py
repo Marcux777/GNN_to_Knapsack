@@ -11,10 +11,9 @@ This is the "Figure 1" that silences critics.
 """
 
 from pathlib import Path
-from typing import Dict, List, Optional
 
-import matplotlib.pyplot as plt
 import matplotlib.gridspec as gridspec
+import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
 
@@ -23,12 +22,12 @@ sns.set_context("paper", font_scale=1.3)
 
 
 def create_publication_figure(
-    stats_by_size: Dict[int, Dict],
-    gaps_all: List[float],
-    sizes_all: List[int],
-    strategy_gaps: Dict[str, List[float]],
-    calibration_results: Dict,
-    save_path: str,
+    stats_by_size: dict[int, dict],
+    gaps_all: list[float],
+    sizes_all: list[int],
+    strategy_gaps: dict[str, list[float]],
+    calibration_results: dict,
+    save_path: str | Path,
     title: str = "GNN-based Knapsack Solver: Comprehensive Validation",
 ):
     """
@@ -78,7 +77,7 @@ def create_publication_figure(
     plt.close(fig)
 
 
-def plot_gap_vs_size_with_ci(ax, stats_by_size: Dict[int, Dict]):
+def plot_gap_vs_size_with_ci(ax: plt.Axes, stats_by_size: dict[int, dict]):
     """
     Panel A: Gap vs problem size with percentiles and confidence intervals.
     """
@@ -123,7 +122,7 @@ def plot_gap_vs_size_with_ci(ax, stats_by_size: Dict[int, Dict]):
     ax.set_ylim(bottom=0)
 
 
-def plot_cdf_by_size_range(ax, gaps_all: List[float], sizes_all: List[int]):
+def plot_cdf_by_size_range(ax: plt.Axes, gaps_all: list[float], sizes_all: list[int]):
     """
     Panel B: CDF of gaps grouped by size ranges.
     """
@@ -142,7 +141,7 @@ def plot_cdf_by_size_range(ax, gaps_all: List[float], sizes_all: List[int]):
 
     colors = plt.cm.viridis(np.linspace(0, 0.9, len(ranges)))
 
-    for (label, size_min, size_max), color in zip(ranges, colors):
+    for (label, size_min, size_max), color in zip(ranges, colors, strict=False):
         mask = (sizes_all >= size_min) & (sizes_all <= size_max)
         if not mask.any():
             continue
@@ -161,7 +160,7 @@ def plot_cdf_by_size_range(ax, gaps_all: List[float], sizes_all: List[int]):
     ax.set_ylim([0, 1.05])
 
 
-def plot_strategy_violin(ax, strategy_gaps: Dict[str, List[float]]):
+def plot_strategy_violin(ax: plt.Axes, strategy_gaps: dict[str, list[float]]):
     """
     Panel C: Violin plots comparing strategies.
     """
@@ -171,7 +170,7 @@ def plot_strategy_violin(ax, strategy_gaps: Dict[str, List[float]]):
     # Filter out empty lists
     valid_strategies = []
     valid_gaps = []
-    for s, g in zip(strategies, gaps_lists):
+    for s, g in zip(strategies, gaps_lists, strict=False):
         if len(g) > 0:
             valid_strategies.append(s)
             valid_gaps.append(g)
@@ -191,16 +190,16 @@ def plot_strategy_violin(ax, strategy_gaps: Dict[str, List[float]]):
 
     # Customize colors
     colors = plt.cm.Set3(np.linspace(0, 1, len(valid_strategies)))
-    for pc, color in zip(parts["bodies"], colors):
+    for pc, color in zip(parts["bodies"], colors, strict=False):
         pc.set_facecolor(color)
         pc.set_alpha(0.7)
         pc.set_edgecolor("black")
         pc.set_linewidth(1)
 
     # Add mean annotations
-    for i, (strategy, gaps) in enumerate(zip(valid_strategies, valid_gaps)):
+    for i, (_strategy, gaps) in enumerate(zip(valid_strategies, valid_gaps, strict=False)):
         mean_val = np.mean(gaps)
-        median_val = np.median(gaps)
+        np.median(gaps)
         p95_val = np.percentile(gaps, 95)
 
         # Annotate above violin
@@ -212,7 +211,12 @@ def plot_strategy_violin(ax, strategy_gaps: Dict[str, List[float]]):
             ha="center",
             va="bottom",
             fontsize=8,
-            bbox=dict(boxstyle="round,pad=0.3", facecolor="white", alpha=0.7, edgecolor="gray"),
+            bbox={
+                "boxstyle": "round,pad=0.3",
+                "facecolor": "white",
+                "alpha": 0.7,
+                "edgecolor": "gray",
+            },
         )
 
     ax.set_xticks(range(len(valid_strategies)))
@@ -223,7 +227,7 @@ def plot_strategy_violin(ax, strategy_gaps: Dict[str, List[float]]):
     ax.set_ylim(bottom=0)
 
 
-def plot_reliability_panel(ax, calibration_results: Dict):
+def plot_reliability_panel(ax: plt.Axes, calibration_results: dict):
     """
     Panel D: Reliability diagram (calibration).
     """
@@ -288,7 +292,7 @@ def plot_reliability_panel(ax, calibration_results: Dict):
         transform=ax.transAxes,
         fontsize=11,
         verticalalignment="top",
-        bbox=dict(boxstyle="round,pad=0.5", facecolor="white", alpha=0.8, edgecolor="gray"),
+        bbox={"boxstyle": "round,pad=0.5", "facecolor": "white", "alpha": 0.8, "edgecolor": "gray"},
     )
 
     ax.set_xlabel("Mean Predicted Probability", fontsize=12, fontweight="bold")
@@ -302,9 +306,9 @@ def plot_reliability_panel(ax, calibration_results: Dict):
 
 
 def create_results_table_latex(
-    stats_by_size: Dict[int, Dict],
-    strategy_results: Dict[str, Dict],
-    save_path: str,
+    stats_by_size: dict[int, dict],
+    strategy_results: dict[str, dict],
+    save_path: str | Path,
 ):
     """
     Create LaTeX table of results.

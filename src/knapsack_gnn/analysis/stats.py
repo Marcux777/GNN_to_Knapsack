@@ -18,10 +18,10 @@ Usage:
     results = analyzer.paired_comparison(method_a_gaps, method_b_gaps)
 """
 
+import warnings
+
 import numpy as np
 from scipy import stats
-from typing import List, Dict, Tuple, Optional, Union
-import warnings
 
 
 class StatisticalAnalyzer:
@@ -38,7 +38,7 @@ class StatisticalAnalyzer:
         self.alpha = alpha
         self.n_bootstrap = n_bootstrap
 
-    def paired_t_test(self, method_a: np.ndarray, method_b: np.ndarray) -> Dict:
+    def paired_t_test(self, method_a: np.ndarray, method_b: np.ndarray) -> dict:
         """
         Paired t-test for comparing two methods on the same instances
 
@@ -81,7 +81,7 @@ class StatisticalAnalyzer:
             "winner": "method_b" if mean_diff > 0 else "method_a" if mean_diff < 0 else "tie",
         }
 
-    def wilcoxon_test(self, method_a: np.ndarray, method_b: np.ndarray) -> Dict:
+    def wilcoxon_test(self, method_a: np.ndarray, method_b: np.ndarray) -> dict:
         """
         Wilcoxon signed-rank test (non-parametric alternative to paired t-test)
 
@@ -136,8 +136,8 @@ class StatisticalAnalyzer:
         return float(np.mean(differences) / np.std(differences, ddof=1))
 
     def bootstrap_ci(
-        self, data: np.ndarray, statistic_fn=np.mean, confidence: float = 0.95
-    ) -> Tuple[float, float]:
+        self, data: np.ndarray, statistic_fn: callable = np.mean, confidence: float = 0.95
+    ) -> tuple[float, float]:
         """
         Bootstrap confidence interval for any statistic
 
@@ -169,7 +169,7 @@ class StatisticalAnalyzer:
 
     def bootstrap_paired_difference(
         self, method_a: np.ndarray, method_b: np.ndarray, confidence: float = 0.95
-    ) -> Dict:
+    ) -> dict:
         """
         Bootstrap confidence interval for paired difference
 
@@ -217,7 +217,7 @@ class StatisticalAnalyzer:
             "significant": p_value < self.alpha,
         }
 
-    def bonferroni_correction(self, p_values: List[float], alpha: Optional[float] = None) -> Dict:
+    def bonferroni_correction(self, p_values: list[float], alpha: float | None = None) -> dict:
         """
         Bonferroni correction for multiple testing
 
@@ -248,7 +248,7 @@ class StatisticalAnalyzer:
             "significant": (corrected_p_values < alpha).tolist(),
         }
 
-    def holm_correction(self, p_values: List[float], alpha: Optional[float] = None) -> Dict:
+    def holm_correction(self, p_values: list[float], alpha: float | None = None) -> dict:
         """
         Holm-Bonferroni correction (less conservative than Bonferroni)
 
@@ -296,7 +296,7 @@ class StatisticalAnalyzer:
         method_b: np.ndarray,
         method_a_name: str = "Method A",
         method_b_name: str = "Method B",
-    ) -> Dict:
+    ) -> dict:
         """
         Comprehensive paired comparison with all tests
 
@@ -358,7 +358,7 @@ class StatisticalAnalyzer:
 
         return results
 
-    def mann_whitney_u_test(self, group_a: np.ndarray, group_b: np.ndarray) -> Dict:
+    def mann_whitney_u_test(self, group_a: np.ndarray, group_b: np.ndarray) -> dict:
         """
         Mann-Whitney U test (independent samples, non-parametric)
 
@@ -396,7 +396,7 @@ class StatisticalAnalyzer:
             else "tie",
         }
 
-    def sign_test(self, method_a: np.ndarray, method_b: np.ndarray) -> Dict:
+    def sign_test(self, method_a: np.ndarray, method_b: np.ndarray) -> dict:
         """
         Sign test (non-parametric paired test)
 
@@ -446,7 +446,7 @@ class StatisticalAnalyzer:
             "significant": p_value < self.alpha,
         }
 
-    def friedman_test(self, *methods: np.ndarray) -> Dict:
+    def friedman_test(self, *methods: np.ndarray) -> dict:
         """
         Friedman test (non-parametric test for multiple related samples)
 
@@ -548,7 +548,7 @@ class StatisticalAnalyzer:
         delta = self.cliffs_delta(method_a, method_b)
         return float((delta + 1) / 2)
 
-    def shapiro_wilk_test(self, data: np.ndarray) -> Dict:
+    def shapiro_wilk_test(self, data: np.ndarray) -> dict:
         """
         Shapiro-Wilk normality test
 
@@ -581,7 +581,7 @@ class StatisticalAnalyzer:
             "interpretation": "normal" if p_value >= self.alpha else "not normal",
         }
 
-    def anderson_darling_test(self, data: np.ndarray) -> Dict:
+    def anderson_darling_test(self, data: np.ndarray) -> dict:
         """
         Anderson-Darling normality test
 
@@ -617,7 +617,7 @@ class StatisticalAnalyzer:
             "interpretation": "normal" if is_normal else "not normal",
         }
 
-    def levene_test(self, *groups: np.ndarray) -> Dict:
+    def levene_test(self, *groups: np.ndarray) -> dict:
         """
         Levene's test for homogeneity of variances
 
@@ -643,8 +643,8 @@ class StatisticalAnalyzer:
         }
 
     def benjamini_hochberg_correction(
-        self, p_values: List[float], alpha: Optional[float] = None
-    ) -> Dict:
+        self, p_values: list[float], alpha: float | None = None
+    ) -> dict:
         """
         Benjamini-Hochberg FDR correction (less conservative than Bonferroni)
 
@@ -703,9 +703,9 @@ class StatisticalAnalyzer:
         self,
         effect_size: float,
         n_samples: int,
-        alpha: Optional[float] = None,
+        alpha: float | None = None,
         test_type: str = "paired-t",
-    ) -> float:
+    ) -> float | None:
         """
         Compute statistical power for a test
 
@@ -745,9 +745,9 @@ class StatisticalAnalyzer:
         self,
         effect_size: float,
         power: float = 0.8,
-        alpha: Optional[float] = None,
+        alpha: float | None = None,
         test_type: str = "paired-t",
-    ) -> int:
+    ) -> int | None:
         """
         Compute required sample size for desired power
 
@@ -813,7 +813,7 @@ class StatisticalAnalyzer:
         else:
             return "large"
 
-    def _create_summary(self, results: Dict) -> str:
+    def _create_summary(self, results: dict) -> str:
         """Create human-readable summary"""
         summary_lines = []
 
@@ -860,7 +860,7 @@ def compare_methods(
     method_a_name: str = "Method A",
     method_b_name: str = "Method B",
     alpha: float = 0.05,
-) -> Dict:
+) -> dict:
     """
     Convenience function for paired method comparison
 
@@ -880,7 +880,7 @@ def compare_methods(
     )
 
 
-def print_comparison_report(results: Dict):
+def print_comparison_report(results: dict):
     """
     Print formatted comparison report
 
@@ -958,7 +958,9 @@ def print_comparison_report(results: Dict):
     print("=" * 80)
 
 
-def compute_percentiles(data: np.ndarray, percentiles: List[float] = None) -> Dict[str, float]:
+def compute_percentiles(
+    data: np.ndarray, percentiles: list[float] | None = None
+) -> dict[str, float]:
     """
     Compute percentiles for gap distribution.
 
@@ -984,8 +986,8 @@ def compute_percentiles(data: np.ndarray, percentiles: List[float] = None) -> Di
 
 
 def compute_gap_statistics_by_size(
-    gaps: List[float], sizes: List[int], size_bins: List[int] = None
-) -> Dict[int, Dict]:
+    gaps: list[float], sizes: list[int], size_bins: list[int] | None = None
+) -> dict[int, dict]:
     """
     Compute gap statistics grouped by problem size.
 
@@ -1066,7 +1068,9 @@ def compute_gap_statistics_by_size(
     return results
 
 
-def compute_cdf(data: np.ndarray, x_values: np.ndarray = None) -> Tuple[np.ndarray, np.ndarray]:
+def compute_cdf(
+    data: np.ndarray, x_values: np.ndarray | None = None
+) -> tuple[np.ndarray, np.ndarray]:
     """
     Compute empirical cumulative distribution function.
 
@@ -1100,8 +1104,8 @@ def compute_cdf(data: np.ndarray, x_values: np.ndarray = None) -> Tuple[np.ndarr
 
 
 def compute_cdf_by_size(
-    gaps: List[float], sizes: List[int], size_bins: List[int] = None
-) -> Dict[int, Dict[str, np.ndarray]]:
+    gaps: list[float], sizes: list[int], size_bins: list[int] | None = None
+) -> dict[int, dict[str, np.ndarray]]:
     """
     Compute CDF of gaps grouped by problem size.
 
@@ -1146,7 +1150,7 @@ def compute_cdf_by_size(
 
 def check_sample_size_adequacy(
     data: np.ndarray, target_error: float = 0.5, confidence: float = 0.95
-) -> Dict:
+) -> dict:
     """
     Check if sample size is adequate for estimating mean with desired precision.
 
@@ -1266,7 +1270,7 @@ if __name__ == "__main__":
     print("\nSample Size Adequacy Check:")
     print("-" * 80)
     for size in sorted(stats_by_size.keys()):
-        gaps_for_size = [g for g, sz in zip(gaps_all, sizes_all) if sz == size]
+        gaps_for_size = [g for g, sz in zip(gaps_all, sizes_all, strict=False) if sz == size]
         adequacy = check_sample_size_adequacy(np.array(gaps_for_size), target_error=0.5)
         status = "✓" if adequacy["adequate"] else "✗"
         print(

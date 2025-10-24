@@ -6,7 +6,6 @@ Plotting functions for gaps, training curves, and comparisons.
 
 from collections import defaultdict
 from pathlib import Path
-from typing import List, Optional
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -18,9 +17,9 @@ plt.rcParams["figure.dpi"] = 300  # High DPI for publication
 
 
 def plot_optimality_gaps(
-    gaps: List[float],
+    gaps: list[float],
     title: str = "Optimality Gap Distribution",
-    save_path: Optional[str] = None,
+    save_path: str | Path | None = None,
 ):
     """
     Plot distribution of optimality gaps with histogram and box plot.
@@ -69,11 +68,11 @@ def plot_optimality_gaps(
 
 
 def plot_performance_vs_size(
-    instance_sizes: List[int],
-    metrics: List[float],
+    instance_sizes: list[int],
+    metrics: list[float],
     metric_name: str = "Optimality Gap (%)",
     title: str = "Performance vs Problem Size",
-    save_path: Optional[str] = None,
+    save_path: str | Path | None = None,
 ):
     """
     Plot metric performance vs instance size with scatter and trend line.
@@ -97,7 +96,7 @@ def plot_performance_vs_size(
 
     # Compute average per size
     size_to_metrics = defaultdict(list)
-    for size, metric in zip(instance_sizes, metrics):
+    for size, metric in zip(instance_sizes, metrics, strict=False):
         size_to_metrics[size].append(metric)
 
     avg_sizes = sorted(size_to_metrics.keys())
@@ -140,7 +139,7 @@ def plot_performance_vs_size(
 def plot_training_history(
     history: dict,
     title: str = "Training History",
-    save_path: Optional[str] = None,
+    save_path: str | Path | None = None,
 ):
     """
     Plot training and validation metrics over epochs.
@@ -201,10 +200,10 @@ def plot_training_history(
 
 
 def plot_strategy_comparison(
-    strategies: List[str],
-    gaps: List[List[float]],
+    strategies: list[str],
+    gaps: list[list[float]],
     title: str = "Strategy Comparison",
-    save_path: Optional[str] = None,
+    save_path: str | Path | None = None,
 ):
     """
     Compare multiple strategies side-by-side with violin plots.
@@ -227,7 +226,7 @@ def plot_strategy_comparison(
 
     # Customize colors
     colors = plt.cm.Set3(range(len(strategies)))
-    for pc, color in zip(parts["bodies"], colors):
+    for pc, color in zip(parts["bodies"], colors, strict=False):
         pc.set_facecolor(color)
         pc.set_alpha(0.7)
 
@@ -238,7 +237,7 @@ def plot_strategy_comparison(
     ax.grid(True, alpha=0.3, axis="y")
 
     # Add mean values as text
-    for i, (strategy, gap_list) in enumerate(zip(strategies, gaps)):
+    for i, (_strategy, gap_list) in enumerate(zip(strategies, gaps, strict=False)):
         mean_val = np.mean(gap_list)
         ax.text(i, max(gap_list) * 1.05, f"{mean_val:.2f}%", ha="center", fontsize=10)
 
@@ -257,11 +256,11 @@ def plot_strategy_comparison(
 
 
 def plot_gap_cdf_by_size(
-    gaps: List[float],
-    sizes: List[int],
-    size_bins: Optional[List[int]] = None,
+    gaps: list[float],
+    sizes: list[int],
+    size_bins: list[int] | None = None,
     title: str = "CDF of Optimality Gaps by Problem Size",
-    save_path: Optional[str] = None,
+    save_path: str | Path | None = None,
 ):
     """
     Plot cumulative distribution function of gaps grouped by problem size.
@@ -292,7 +291,7 @@ def plot_gap_cdf_by_size(
 
     colors = plt.cm.viridis(np.linspace(0, 0.9, len(size_bins)))
 
-    for size, color in zip(size_bins, colors):
+    for size, color in zip(size_bins, colors, strict=False):
         cdf_data = cdfs[size]
         if len(cdf_data["x"]) == 0:
             continue
@@ -330,7 +329,7 @@ def plot_gap_cdf_by_size(
 def plot_gap_percentiles_by_size(
     stats_by_size: dict,
     title: str = "Gap Percentiles vs Problem Size",
-    save_path: Optional[str] = None,
+    save_path: str | Path | None = None,
 ):
     """
     Plot gap percentiles (p50, p90, p95, p99) vs problem size.
@@ -386,11 +385,11 @@ def plot_gap_percentiles_by_size(
 
 
 def plot_gap_violin_by_size(
-    gaps: List[float],
-    sizes: List[int],
-    size_bins: Optional[List[int]] = None,
+    gaps: list[float],
+    sizes: list[int],
+    size_bins: list[int] | None = None,
     title: str = "Gap Distribution by Problem Size",
-    save_path: Optional[str] = None,
+    save_path: str | Path | None = None,
 ):
     """
     Plot violin plots of gap distribution grouped by problem size.
@@ -436,7 +435,7 @@ def plot_gap_violin_by_size(
 
     # Customize colors
     colors = plt.cm.viridis(np.linspace(0.3, 0.9, len(gaps_by_size)))
-    for pc, color in zip(parts["bodies"], colors):
+    for pc, color in zip(parts["bodies"], colors, strict=False):
         pc.set_facecolor(color)
         pc.set_alpha(0.7)
 

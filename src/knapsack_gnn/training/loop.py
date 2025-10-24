@@ -220,7 +220,7 @@ class KnapsackTrainer:
         filepath = os.path.join(self.checkpoint_dir, filename)
         torch.save(checkpoint, filepath)
 
-    def load_checkpoint(self, filename: str):
+    def load_checkpoint(self, filename: str) -> None:
         """Load model checkpoint"""
         filepath = os.path.join(self.checkpoint_dir, filename)
         checkpoint = torch.load(filepath, map_location=self.device)

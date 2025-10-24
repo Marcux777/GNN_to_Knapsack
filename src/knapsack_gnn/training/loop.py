@@ -207,7 +207,7 @@ class KnapsackTrainer:
 
         return self.history
 
-    def save_checkpoint(self, filename: str):
+    def save_checkpoint(self, filename: str) -> None:
         """Save model checkpoint"""
         checkpoint = {
             "model_state_dict": self.model.state_dict(),

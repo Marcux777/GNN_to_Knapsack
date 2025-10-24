@@ -294,7 +294,7 @@ def load_checkpoint_metadata(checkpoint_dir: Path) -> dict[str, Any]:
     # Load config
     config_file = checkpoint_dir / "config.yaml"
     if config_file.exists():
-        import yaml
+        import yaml  # type: ignore[import-untyped]
 
         with open(config_file) as f:
             metadata["config"] = yaml.safe_load(f)

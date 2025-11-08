@@ -153,7 +153,19 @@ git checkout -b feature/my-awesome-feature
 - Examples:
   - `feature/add-beam-search-decoder`
   - `fix/sampling-probability-nan`
-  - `docs/improve-installation-guide`
+- `docs/improve-installation-guide`
+
+---
+
+### Fluxo com Codex
+1. Leia `.codex/system.md` (obrigatório).
+2. Abra a demanda colando um template de `.codex/tasks.md` (bugfix/feature/refactor/experimento) já preenchido.
+3. Use `make ci-local` antes de qualquer PR.
+4. PRs devem marcar a checklist de `.codex/eval.md`.
+
+### Padrões
+- Commits `type(scope): summary` (ex.: `fix(train): avoid dataloader hang`).
+- Não edite/remoção de arquivos em `.codex/` sem aprovação explícita no PR.
 
 ---
 

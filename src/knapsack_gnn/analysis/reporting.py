@@ -342,7 +342,8 @@ class AcademicReporter:
         bars = ax.bar(x, values, yerr=errors, capsize=5, alpha=0.7, edgecolor="black")
 
         # Color bars
-        colors = plt.cm.Set2(np.linspace(0, 1, len(methods)))
+        cmap = plt.get_cmap("Set2")
+        colors = cmap(np.linspace(0, 1, len(methods)))
         for bar, color in zip(bars, colors, strict=False):
             bar.set_color(color)
 
@@ -389,13 +390,17 @@ class AcademicReporter:
         methods = list(data.keys())
         values = [data[m] for m in methods]
 
-        bp = ax.boxplot(values, labels=methods, patch_artist=True)
+        bp = ax.boxplot(values, patch_artist=True)
 
         # Color boxes
-        colors = plt.cm.Set2(np.linspace(0, 1, len(methods)))
+        cmap = plt.get_cmap("Set2")
+        colors = cmap(np.linspace(0, 1, len(methods)))
         for patch, color in zip(bp["boxes"], colors, strict=False):
             patch.set_facecolor(color)
             patch.set_alpha(0.7)
+
+        ax.set_xticks(np.arange(1, len(methods) + 1))
+        ax.set_xticklabels(methods, rotation=15, ha="right")
 
         ax.set_ylabel(ylabel)
         if title:
@@ -434,9 +439,9 @@ class AcademicReporter:
         fig, ax = plt.subplots(figsize=(8, 5))
 
         methods = list(results.keys())
-        means = []
-        ci_lows = []
-        ci_highs = []
+        means: list[float] = []
+        ci_lows: list[float] = []
+        ci_highs: list[float] = []
 
         for method in methods:
             result = results[method]
@@ -451,18 +456,18 @@ class AcademicReporter:
             ci_lows.append(ci[0])
             ci_highs.append(ci[1])
 
-        means = np.array(means)
-        ci_lows = np.array(ci_lows)
-        ci_highs = np.array(ci_highs)
+        mean_arr = np.asarray(means, dtype=np.float64)
+        ci_low_arr = np.asarray(ci_lows, dtype=np.float64)
+        ci_high_arr = np.asarray(ci_highs, dtype=np.float64)
 
         # Error bars
-        errors_low = means - ci_lows
-        errors_high = ci_highs - means
+        errors_low = mean_arr - ci_low_arr
+        errors_high = ci_high_arr - mean_arr
 
         x = np.arange(len(methods))
         ax.errorbar(
             x,
-            means,
+            mean_arr,
             yerr=[errors_low, errors_high],
             fmt="o",
             markersize=8,

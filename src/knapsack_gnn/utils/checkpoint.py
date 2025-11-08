@@ -114,7 +114,7 @@ def get_hardware_info() -> dict[str, Any]:
     Returns:
         Dictionary with hardware information
     """
-    hw_info = {
+    hw_info: dict[str, Any] = {
         "cpu_count": torch.get_num_threads(),
         "cuda_available": torch.cuda.is_available(),
     }
@@ -198,7 +198,7 @@ def save_checkpoint_metadata(
     # Save configuration
     if config is not None:
         if hasattr(config, "model_dump"):  # Pydantic model
-            import yaml  # type: ignore[import-untyped]
+            import yaml
 
             config_dict = config.model_dump()
             with open(checkpoint_dir / "config.yaml", "w") as f:

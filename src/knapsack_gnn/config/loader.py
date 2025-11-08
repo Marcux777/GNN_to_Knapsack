@@ -7,7 +7,7 @@ Provides functions to load YAML configs and validate them against Pydantic schem
 from pathlib import Path
 from typing import Any
 
-import yaml  # type: ignore[import-untyped]
+import yaml
 from pydantic import ValidationError
 
 from knapsack_gnn.config.schemas import ExperimentConfig

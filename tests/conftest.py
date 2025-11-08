@@ -2,11 +2,22 @@
 Pytest configuration and shared fixtures for testing.
 """
 
+import os
+import warnings
+
 import numpy as np
 import pytest
 import torch
 
 from knapsack_gnn.training.utils import set_seed
+
+os.environ.setdefault("APP_DISABLE_WATCHER", "1")
+warnings.filterwarnings(
+    "ignore",
+    message="`torch_geometric.distributed` has been deprecated",
+    category=DeprecationWarning,
+    module="torch_geometric.llm.utils.backend_utils",
+)
 
 
 @pytest.fixture(scope="session", autouse=True)

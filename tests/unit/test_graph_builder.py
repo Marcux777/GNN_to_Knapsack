@@ -40,8 +40,8 @@ class TestGraphBuilder:
             f"Expected {expected_nodes} nodes, got {graph.x.shape[0]}"
         )
 
-        # Features: [value, weight] for items, [capacity, 0] for capacity node
-        assert graph.x.shape[1] == 2, "Each node should have 2 features"
+        # Features now include extended stats (value, weight, ratio, ranks, z-scores, etc.)
+        assert graph.x.shape[1] == 8, "Each node should have 8 features"
 
     def test_node_features_values(self, small_knapsack_instance):
         """Test that node features contain correct values (possibly normalized)."""
@@ -50,7 +50,7 @@ class TestGraphBuilder:
 
         n_items = inst["n_items"]
 
-        # Item nodes should have 2 features (value and weight, but may be normalized)
+        # Item nodes have extended feature vector; check first two (value/weight) sanity
         for i in range(n_items):
             # Check that features are reasonable values (not NaN or Inf)
             assert not torch.isnan(graph.x[i, 0]), f"Item {i} value is NaN"
@@ -151,4 +151,4 @@ class TestGraphBuilder:
 
         assert not torch.isnan(graph.x).any(), "Node features contain NaN"
         assert not torch.isinf(graph.x).any(), "Node features contain Inf"
-        assert (graph.x >= 0).all(), "Node features should be non-negative"
+        assert (graph.x[:, :2] >= 0).all(), "Value/weight features should be non-negative"

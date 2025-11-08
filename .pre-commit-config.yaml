@@ -50,7 +50,7 @@ repos:
     rev: v1.35.1
     hooks:
       - id: yamllint
-        files: .yamllint mkdocs.yml
+        files: ^\.yamllint$
 
   # Commit message linting (Conventional Commits)
   - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
@@ -60,6 +60,14 @@ repos:
         name: commitlint (conventional commits)
         stages: [commit-msg]
         additional_dependencies: ['@commitlint/config-conventional']
+
+  - repo: local
+    hooks:
+      - id: codex-guard
+        name: verify codex artifacts
+        entry: python scripts/verify_codex.py
+        language: system
+        pass_filenames: false
 
   # ============================================================================
   # Pre-push stage: Heavier checks (type checking, tests, dependency sync)
@@ -74,7 +82,9 @@ repos:
         language: python
         pass_filenames: false
         stages: [pre-push]
-        additional_dependencies: [mypy]
+        additional_dependencies:
+          - mypy
+          - types-PyYAML
 
       # Run quick tests (exclude slow tests)
       - id: pytest-quick

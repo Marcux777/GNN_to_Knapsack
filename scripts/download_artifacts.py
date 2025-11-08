@@ -45,28 +45,31 @@ def download_file(url: str, output_path: Path, expected_hash: str | None = None)
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(output_path, "wb") as f, tqdm(
-            desc=output_path.name,
-            total=total_size,
-            unit="B",
-            unit_scale=True,
-            unit_divisor=1024,
-        ) as pbar:
+        with (
+            open(output_path, "wb") as f,
+            tqdm(
+                desc=output_path.name,
+                total=total_size,
+                unit="B",
+                unit_scale=True,
+                unit_divisor=1024,
+            ) as pbar,
+        ):
             for chunk in response.iter_content(chunk_size=8192):
                 f.write(chunk)
                 pbar.update(len(chunk))
 
         # Verify hash if provided
         if expected_hash:
-            print(f"Verifying checksum...")
+            print("Verifying checksum...")
             actual_hash = compute_sha256(output_path)
             if actual_hash != expected_hash:
-                print(f"✗ Hash mismatch!")
+                print("✗ Hash mismatch!")
                 print(f"  Expected: {expected_hash}")
                 print(f"  Got:      {actual_hash}")
                 output_path.unlink()
                 return False
-            print(f"✓ Checksum verified")
+            print("✓ Checksum verified")
 
         return True
 
@@ -114,7 +117,7 @@ def download_from_zenodo(doi: str, filename: str | None = None) -> bool:
 
     # Get record metadata
     api_url = f"https://zenodo.org/api/records/{record_id}"
-    print(f"Fetching metadata from Zenodo...")
+    print("Fetching metadata from Zenodo...")
 
     try:
         response = requests.get(api_url, timeout=30)

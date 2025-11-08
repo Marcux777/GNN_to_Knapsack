@@ -31,11 +31,24 @@ Unlike `checkpoints/` (which contains raw outputs from every run), `results/` co
 
 ```
 results/
-├── baselines/                    # Baseline algorithm comparisons
-│   ├── baseline_comparison.png   # GNN vs Greedy vs Random
-│   └── comparison_results.json   # Numerical results
-└── README.md                     # This file
+├── ablations/
+│   ├── architecture/                       # Architecture comparisons (PNA/GCN/GAT)
+│   │   ├── architecture_ablation.json      # Aggregate metrics table
+│   │   ├── architecture_ablation.png       # Bar chart used in docs
+│   │   ├── learning_curves.png             # Overlayed learning curves
+│   │   └── {gat,gcn,pna}/                  # Per-arch training curves + histories
+│   └── features/
+│       ├── feature_ablation.json           # Summary of feature drop tests
+│       └── feature_ablation.png            # Visualization referenced in reports
+├── baselines/                              # Baseline algorithm comparisons
+│   ├── baseline_comparison.png             # GNN vs Greedy vs Random
+│   └── comparison_results.json             # Numerical results
+└── README.md                               # This file
 ```
+
+Ablation checkpoints that accompany these figures are stored separately under
+`checkpoints/ablations/architecture/<arch>/` to keep large binaries out of the
+`results/` tree.
 
 ## 🔄 Workflow
 

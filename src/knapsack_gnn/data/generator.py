@@ -10,12 +10,18 @@ from typing import Any
 
 import numpy as np
 
+knapsack_solver: Any | None
 try:
-    # OR-Tools <= 9.13
-    from ortools.algorithms import pywrapknapsack_solver as knapsack_solver
-except ImportError:
-    # OR-Tools >= 9.14 reorganized algorithms into python submodule
-    from ortools.algorithms.python import knapsack_solver
+    from ortools.algorithms import pywrapknapsack_solver as _knapsack_solver
+
+    knapsack_solver = _knapsack_solver
+except ImportError:  # pragma: no cover - optional dependency
+    try:
+        from ortools.algorithms.python import knapsack_solver as _knapsack_solver
+
+        knapsack_solver = _knapsack_solver
+    except ImportError:  # pragma: no cover - optional dependency
+        knapsack_solver = None
 
 
 class KnapsackInstance:
@@ -105,6 +111,14 @@ class KnapsackSolver:
         Returns:
             Same instance with solution and optimal_value filled
         """
+        if knapsack_solver is None:
+            start = time.perf_counter()
+            solution, optimal_value = _dynamic_programming_solve(instance)
+            instance.solution = solution
+            instance.optimal_value = optimal_value
+            instance.solve_time = time.perf_counter() - start
+            return instance
+
         # Create the solver
         solver_type = getattr(
             knapsack_solver,
@@ -216,9 +230,13 @@ class KnapsackDataset:
 
         # Check if solved
         if self.instances[0].solution is not None:
-            optimal_values = [inst.optimal_value for inst in self.instances]
-            stats["optimal_value_mean"] = np.mean(optimal_values)
-            stats["optimal_value_std"] = np.std(optimal_values)
+            optimal_values = [
+                inst.optimal_value for inst in self.instances if inst.optimal_value is not None
+            ]
+            if optimal_values:
+                optimal_array = np.asarray(optimal_values, dtype=np.float64)
+                stats["optimal_value_mean"] = float(np.mean(optimal_array))
+                stats["optimal_value_std"] = float(np.std(optimal_array))
 
         return stats
 
@@ -377,6 +395,37 @@ def solve_with_ortools(
     instance = KnapsackInstance(weights=weights, values=values, capacity=capacity)
     solved = KnapsackSolver.solve(instance, time_limit=time_limit)
     return solved.optimal_value, solved.solution
+
+
+def _dynamic_programming_solve(instance: KnapsackInstance) -> tuple[np.ndarray, float]:
+    """Solve a knapsack instance exactly using a DP fallback."""
+    weights = instance.weights.astype(np.int64)
+    values = instance.values.astype(np.float64)
+    capacity = int(instance.capacity)
+    n = instance.n_items
+
+    dp = np.zeros((n + 1, capacity + 1), dtype=np.float64)
+    for i in range(1, n + 1):
+        w_i = int(weights[i - 1])
+        v_i = float(values[i - 1])
+        for cap in range(capacity + 1):
+            dp[i, cap] = dp[i - 1, cap]
+            if cap >= w_i:
+                candidate = dp[i - 1, cap - w_i] + v_i
+                if candidate > dp[i, cap]:
+                    dp[i, cap] = candidate
+
+    solution = np.zeros(n, dtype=np.int32)
+    remaining_capacity = capacity
+    for i in range(n, 0, -1):
+        if remaining_capacity < 0:
+            break
+        if dp[i, remaining_capacity] > dp[i - 1, remaining_capacity] + 1e-9:
+            solution[i - 1] = 1
+            remaining_capacity -= int(weights[i - 1])
+
+    optimal_value = float(dp[n, capacity])
+    return solution, optimal_value
 
 
 if __name__ == "__main__":

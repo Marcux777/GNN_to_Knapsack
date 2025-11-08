@@ -7,7 +7,7 @@ import math
 import os
 import time
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, cast
 
 import numpy as np
 import torch
@@ -44,7 +44,7 @@ class KnapsackSampler:
 
     def __init__(
         self,
-        model: Any,
+        model: torch.nn.Module,
         device: str | None = None,
         num_threads: int | None = None,
         compile_model: bool = False,
@@ -80,24 +80,29 @@ class KnapsackSampler:
         self._sampling_tolerance = 1e-3
 
     @staticmethod
-    def _apply_dynamic_quantization(model: Any, dtype: Any) -> torch.nn.Module:
+    def _apply_dynamic_quantization(model: torch.nn.Module, dtype: Any) -> torch.nn.Module:
         """Apply dynamic quantization if available."""
         try:
             from torch.ao.quantization import quantize_dynamic
 
-            quantized = quantize_dynamic(model, {torch.nn.Linear}, dtype=dtype)
+            quantized = cast(
+                torch.nn.Module, quantize_dynamic(model, {torch.nn.Linear}, dtype=dtype)
+            )
             return quantized
         except Exception:  # pragma: no cover - optional feature
             return model
 
     @staticmethod
-    def _try_compile(model: Any) -> torch.nn.Module:
+    def _try_compile(model: torch.nn.Module) -> torch.nn.Module:
         """Compile the model if torch.compile is available."""
         compile_fn = getattr(torch, "compile", None)
         if compile_fn is None:  # pragma: no cover - optional feature
             return model
         try:
-            return compile_fn(model, mode="reduce-overhead", fullgraph=False)
+            compiled = cast(
+                torch.nn.Module, compile_fn(model, mode="reduce-overhead", fullgraph=False)
+            )
+            return compiled
         except Exception:  # pragma: no cover - optional feature
             return model
 
@@ -113,7 +118,7 @@ class KnapsackSampler:
         """
         data = data.to(self.device, non_blocking=True)
         with torch.inference_mode():
-            probs = self.model(data)
+            probs: torch.Tensor = self.model(data)
         return probs.detach().cpu()
 
     def check_feasibility(self, solution: np.ndarray, weights: np.ndarray, capacity: float) -> bool:
@@ -290,7 +295,7 @@ class KnapsackSampler:
         values = data.item_values.numpy()
         capacity = data.capacity
 
-        best_solution = None
+        best_solution: np.ndarray = np.zeros_like(values, dtype=np.int32)
         best_value = -1.0
         best_threshold = 0.5
 
@@ -811,7 +816,11 @@ class KnapsackSampler:
             initial_value = sampling_result["value"]
 
             # Apply repair + local search
-            repairer = SolutionRepairer()
+            repairer = SolutionRepairer(
+                n_restarts=kwargs.get("repair_restarts", 3),
+                ratio_jitter=kwargs.get("repair_ratio_jitter", 0.05),
+                random_state=kwargs.get("repair_seed"),
+            )
             final_solution, repair_metadata = repairer.hybrid_repair_and_search(
                 initial_solution, weights, values, capacity, use_1swap=True, use_2opt=False
             )
@@ -895,7 +904,11 @@ class KnapsackSampler:
             ilp_success = warm_status in ("OPTIMAL", "FEASIBLE")
 
             # Apply repair + local search to ILP result
-            repairer = SolutionRepairer()
+            repairer = SolutionRepairer(
+                n_restarts=kwargs.get("repair_restarts", 3),
+                ratio_jitter=kwargs.get("repair_ratio_jitter", 0.05),
+                random_state=kwargs.get("repair_seed"),
+            )
             final_solution, repair_metadata = repairer.hybrid_repair_and_search(
                 ilp_solution, weights, values, capacity, use_1swap=True, use_2opt=False
             )

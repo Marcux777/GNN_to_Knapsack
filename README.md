@@ -4,374 +4,268 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 
-Study on how Graph Neural Networks (GNNs) can be applied to solve the 0/1 Knapsack Problem.
+Estudo sobre como Redes Neurais Gráficas (Graph Neural Networks – GNNs) podem ser aplicadas para resolver o Problema da Mochila 0/1.
 
 ## Knapsack GNN - Learning to Optimize
 
-Implementation of Graph Neural Networks for solving the 0-1 Knapsack Problem using the **Learning to Optimize (L2O)** approach.
+Implementação de GNNs para o Problema da Mochila 0-1 utilizando a abordagem **Learning to Optimize (L2O)**.
 
-> **Research-Grade Implementation**: Achieves 99.93% of optimal value (0.07% gap) with comprehensive validation (OOD generalization, baseline comparisons, ablation studies). Includes publication-ready visualizations and extensive documentation.
+> **Implementação em nível de pesquisa**: atinge 99,93% do valor ótimo (gap de 0,07%) com validações completas (generalização OOD, comparação com baselines, ablações). Inclui visualizações prontas para publicação e documentação extensa.
 
-## Overview
+## Visão Geral
 
-This project implements a **PNA-based (Principal Neighborhood Aggregation)** Graph Neural Network to solve combinatorial optimization problems, specifically the 0-1 Knapsack Problem. The approach transforms the optimization problem into a graph and learns to predict optimal solutions through supervised learning.
+Este projeto implementa uma GNN baseada em **Principal Neighborhood Aggregation (PNA)** para resolver problemas de otimização combinatória, em especial o Problema da Mochila 0-1. O problema é transformado em um grafo e a rede aprende, de forma supervisionada, a prever soluções ótimas.
 
-### Key Features
+### Principais Recursos
 
-- **Bipartite Graph Representation**: Item nodes connect to a single capacity node (see `data/graph_builder.py`)
-- **PNA Architecture**: Uses Principal Neighborhood Aggregation for expressive message passing
-- **Multiple Inference Strategies**: Threshold, vectorised sampling, adaptive sampling, warm-start ILP
-- **Exact Solver Integration**: OR-Tools generates optimal labels for supervision and benchmarks
-- **Comprehensive Evaluation**: Optimality gap analysis, timing benchmarks, ablations, and rich visualisations
+- **Grafo bipartido**: nós de itens conectados a um único nó de capacidade (veja `data/graph_builder.py`).
+- **Arquitetura PNA**: passagem de mensagens expressiva via Principal Neighborhood Aggregation.
+- **Várias estratégias de inferência**: threshold, amostragem vetorizada, amostragem adaptativa, ILP warm-start.
+- **Integração com solver exato**: OR-Tools gera rótulos ótimos para treino e benchmarking.
+- **Avaliação abrangente**: análise de gap, benchmarks de tempo, estudos de ablação e visualizações ricas.
 
-### Latest Results (run_20251020_104533 – CPU)
+## 📋 Atualizações Operacionais (nov/2025)
 
-**🏆 Main Finding: 99.93% of optimal value (0.068% gap) with adaptive sampling; warm-start ILP reaches 0.18% gap with 1.9 ms refinements.**
+Para manter o repositório alinhado ao fluxo Codex, consolidamos as seguintes rotinas:
 
-## 🔬 Scientific Validation Framework
+- `.codex/tasks.md` agora traz cartões padronizados (BUGFIX/FEATURE/REFACTOR/EXPERIMENTO) que devem ser copiados em qualquer issue/PR antes de iniciar uma demanda.
+- `make ci-local` executa `ruff format .`, `ruff check .`, `mypy src/knapsack_gnn experiments || true` e `pytest -q --maxfail=1 -k "not slow"` em sequência; use antes de cada PR.
+- `.github/PULL_REQUEST_TEMPLATE.md` e `CONTRIBUTING.md` exigem que contribuidores leiam `.codex/system.md`, usem o template adequado e marquem a checklist de `.codex/eval.md`.
+- `.pre-commit-config.yaml` inclui o hook local `codex-guard` (script `scripts/verify_codex.py`) que bloqueia remoções não autorizadas de `.codex/*`.
+- **Nov 2025**: `make ci-local` executado com sucesso (fmt/lint/mypy/teste rápido) após ajustes de lint nos scripts utilitários; mantenha esse alvo como verificação mínima pré-PR.
+- **Nov 2025**: `results/bipartite_graphs/` atualizado com `bipartite_0/5/10.png` gerados a partir de `data/datasets/test.pkl` (ver comando abaixo) para auditar a distribuição do grafo item↔capacidade.
+- **Nov 2025**: GitHub Actions (`.github/workflows/ci.yml`) agora bloqueia merges sem `.codex/*` completo ou sem `make ci-local` limpo, reproduzindo automaticamente o passo local no CI.
+- **Nov 2025**: Guia rápido de smoke test do `codex-and-tests` disponível em `docs/development.md#codex-ci-smoke-test` para abrir PRs de validação e monitorar o novo job.
+- **Nov 2025**: Workflow do CI com cache de `pip` para acelerar execuções repetidas do `make ci-local`.
 
-**NEW (Oct 2025):** Complete scientific validation framework for publication-grade results.
+> Este README também funciona como relatório vivo: seções de atualização documentam exatamente o que foi configurado em cada passo do plano Codex.
 
-**Status:** ✅ **8/10 tasks implemented** (~3,200 lines of validation code)
+### Visualização do grafo bipartido (passo 3)
 
-### What's Included
-
-- ✅ **Rigorous Statistics**: Bootstrap CIs (B=10k), percentiles (p50/p90/p95/p99), CDF analysis, sample size adequacy checks
-- ✅ **Probability Calibration**: ECE, Brier score, Temperature/Platt scaling, reliability plots
-- ✅ **Solution Repair**: Greedy repair + local search (1-swap, 2-opt) to eliminate outliers
-- ✅ **Ablation Study**: PNA vs GCN vs GAT, 2/3/4 layers comparison
-- ✅ **Publication Figures**: 4-panel publication-ready figures (300 DPI), LaTeX tables
-- ✅ **Normalization Checks**: Size invariance verification, aggregator activation analysis
-
-### Quick Start - Validation
+Para inspecionar a distribuição do grafo item↔capacidade usado em cada instância, gere PNGs com:
 
 ```bash
-# Run scientific validation suite
+PYTHONPATH=src python scripts/plot_bipartite_graph.py \
+  --dataset data/datasets/test.pkl \
+  --indices 0 5 10 \
+  --output_dir results/bipartite_graphs
+```
+
+O script usa o builder padrão (`KnapsackGraphBuilder`) e salva as figuras no diretório informado (por padrão `results/bipartite_graphs`). Rode com `--normalize` para verificar como as features normalizadas afetam os pesos das arestas.
+
+### Resultados mais recentes (run_20251020_104533 – CPU)
+
+**🏆 Resultado principal: 99,93% do valor ótimo (gap 0,068%) com amostragem adaptativa; warm-start ILP chega a 0,18% com refinamentos de 1,9 ms.**
+
+## 🔬 Framework Científico
+
+**NOVO (out/2025):** framework completo de validação científica para resultados em nível de publicação. Status: ✅ **8/10 tarefas implementadas** (~3.200 linhas de código de validação).
+
+### Inclui
+
+- ✅ **Estatística rigorosa**: bootstrap (B=10k), percentis (p50/p90/p95/p99), CDF, checagem de tamanho de amostra.
+- ✅ **Calibração**: ECE, Brier score, Temperature/Platt scaling, reliability plots.
+- ✅ **Reparo de soluções**: reparo guloso + busca local (1-swap, 2-opt) para remover outliers.
+- ✅ **Ablação**: PNA vs GCN vs GAT; 2/3/4 camadas.
+- ✅ **Figuras para publicação**: painéis 4k (300 DPI) e tabelas LaTeX.
+- ✅ **Verificações de normalização**: invariância a tamanho e análise de ativação dos agregadores.
+
+### Primeiros passos – validação
+
+```bash
 python experiments/analysis/distribution_analysis.py \
     --results checkpoints/run_20251020_104533/evaluation/results_sampling.json \
     --output-dir checkpoints/run_20251020_104533/evaluation/analysis
 
-# Generate publication figure
 python experiments/pipelines/create_publication_figure.py \
     --results-dir checkpoints/run_20251020_104533/evaluation \
     --output-dir checkpoints/run_20251020_104533/evaluation/publication
 ```
 
-### Validation Metrics
+### Métricas de validação
 
-| Metric | Target | Current | Status |
-|--------|--------|---------|--------|
-| **p95 gap** (10-50 items) | ≤ 1% | 0.54% | ✅ |
-| **Max gap** (after repair) | < 2% | 2.69%→<2%* | ⏳ |
-| **Calibration ECE** | < 0.1 | TBD | ⏳ |
-| **Feasibility rate** | 100% | 100% | ✅ |
+| Métrica | Meta | Atual | Status |
+|--------|------|-------|--------|
+| Gap p95 (10–50 itens) | ≤ 1% | 0,54% | ✅ |
+| Gap máx. (após reparo) | < 2% | 2,69%→<2%* | ⏳ |
+| Calibração ECE | < 0,1 | TBD | ⏳ |
+| Viabilidade | 100% | 100% | ✅ |
 
-\* Expected after repair execution
+\* após execução do reparo
 
-### Documentation
+### Documentação
 
-- 📄 **[Validation Report](docs/reports/validation_report_2025-10-20.md)** - Complete technical validation report
-- 📄 **[Implementation Summary](docs/architecture/implementation_summary.md)** - What was implemented (~3.2k lines)
-- 📄 **[Execution Guide](docs/guides/execution_guide.md)** - Step-by-step execution guide
-- 📄 **[Sumário Executivo (PT-BR)](docs/reports/sumario_executivo_pt-br.md)** - Executive summary in Portuguese
-- 📄 **[Documentation Index](docs/index.md)** - Complete documentation map
+- 📄 **[Relatório de Validação](docs/reports/validation_report_2025-10-20.md)**
+- 📄 **[Resumo da Implementação](docs/architecture/implementation_summary.md)**
+- 📄 **[Guia de Execução](docs/guides/execution_guide.md)**
+- 📄 **[Sumário Executivo (PT-BR)](docs/reports/sumario_executivo_pt-br.md)**
+- 📄 **[Índice da Documentação](docs/index.md)**
 
-### For Researchers
+### Para pesquisadores
 
-This framework transforms "promising results" into **publication-grade evidence** with:
-- Bootstrap confidence intervals (B=10,000)
-- Comprehensive percentile analysis (p50/p90/p95/p99)
-- Probability calibration (ECE < 0.1)
-- Solution repair to eliminate outliers
-- Complete ablation study (PNA vs GCN vs GAT)
-- Publication-ready 4-panel figures + LaTeX tables
+O framework entrega evidência de nível de publicação via:
+- Intervalos de confiança (bootstrap B=10.000)
+- Percentis (p50/p90/p95/p99)
+- Calibração ECE < 0,1
+- Reparo de soluções
+- Ablações completas (PNA/GCN/GAT)
+- Figuras e tabelas em formato editorial
 
-See [Validation Report](docs/reports/validation_report_2025-10-20.md) for complete details.
+| Estratégia | Configuração | Gap médio | Gap mediano | Gap máx. | Viabilidade | Tempo médio | Observações |
+|------------|--------------|-----------|-------------|----------|-------------|-------------|-------------|
+| Sampling | cronograma 32→64→128 | **0,068%** | **0,00%** | 4,57% | **100%** | 14,5 ms | 61,9 amostras (~69 inst/s) |
+| Warm Start | Sampling + ILP (fix ≥0,9; 1s) | 0,18% | 0,00% | 9,41% | **100%** | 21,8 ms | ILP 1,90 ms; 98,5% óptimo |
 
-| Strategy | Configuration | Mean Gap | Median Gap | Max Gap | Feasibility | Mean Time | P90 Time | Notes |
-|----------|---------------|----------|------------|---------|-------------|-----------|----------|-------|
-| Sampling | Vectorised schedule 32→64→128 (max 128 samples) | **0.068%** | **0.00%** | 4.57% | **100%** | 14.5 ms | 16.3 ms | 61.9 samples avg; ≈69 inst/s |
-| Warm Start | Sampling + ILP refine (fix ≥0.9, 1 s budget) | 0.18% | 0.00% | 9.41% | **100%** | 21.8 ms | 26.7 ms | ILP 1.90 ms avg, 98.5% OPTIMAL |
+## 🔄 Reprodutibilidade
 
-These numbers come from `make pipeline PIPELINE_STRATEGIES="sampling warm_start" SKIP_TRAIN=1 CHECKPOINT_DIR=checkpoints/run_20251020_104533 DEVICE=cpu`.
-
-![Sampling gap histogram](checkpoints/run_20251020_104533/evaluation/gaps_sampling.png)
-![Warm-start gap histogram](checkpoints/run_20251020_104533/evaluation/gaps_warm_start.png)
-
-## 🔄 Reproducibility
-
-**Publication-Grade Reproducibility:** All experiments are fully reproducible with comprehensive tracking.
-
-### Quick Start - Reproduce Results
+**Garantia para publicação:** scripts reproduzem cada experimento com rastreamento completo.
 
 ```bash
-# 1. Download pre-trained checkpoint
 make download-checkpoint RUN=run_20251020_104533
-
-# 2. Reproduce evaluation results
 make evaluate CHECKPOINT_DIR=checkpoints/run_20251020_104533 TEST_ONLY=1
-
-# 3. Verify reproducibility
 make verify-reproducibility CHECKPOINT_DIR=checkpoints/run_20251020_104533
 ```
 
-### Features
+Recursos:
+- Seeds centralizados em `set_seed()`
+- Schemas Pydantic verificam YAMLs
+- Checkpoints salvam config + ambiente + git + hardware
+- Artefatos disponíveis via Releases/Zenodo
+- Histórico de configs em `CHANGELOG_CONFIGS.md`
 
-- ✅ **Automatic Seed Management**: Centralized `set_seed()` for Python, NumPy, PyTorch, CUDA
-- ✅ **Config Validation**: Pydantic schemas validate all YAML configs
-- ✅ **Checkpoint Metadata**: Every checkpoint saves config, environment, git state, hardware info
-- ✅ **Artifact Management**: Download checkpoints from GitHub Releases or Zenodo
-- ✅ **Config Versioning**: Track changes in `CHANGELOG_CONFIGS.md`
+Documentos úteis:
+- 📖 [Guia de Reprodutibilidade](docs/guides/reproducibility.md)
+- ✓ [Checklist](docs/checklists/reproducibility_checklist.md)
+- 📝 [Changelog de Configs](CHANGELOG_CONFIGS.md)
 
-### Documentation
+## 🔌 Extensibilidade
 
-- 📖 [Reproducibility Guide](docs/guides/reproducibility.md) - Complete guide
-- ✓ [Reproducibility Checklist](docs/checklists/reproducibility_checklist.md) - Verification steps
-- 📝 [Config Changelog](CHANGELOG_CONFIGS.md) - Configuration history
+Arquitetura modular facilita novos modelos, decoders e problemas.
 
-See full [Reproducibility Guide](docs/guides/reproducibility.md) for details.
-
-**Validated through:**
-- ✅ Out-of-distribution generalization tests (100–200 items, new pipeline still supports OOD runs)
-- ✅ Baseline comparisons (Greedy, Random) from earlier study remain included for reference
-- ✅ Feature and architecture ablations (PNA, GCN, GAT) still reproducible via `ablation_study.py`
-
----
-
-## 🔌 Extensibility
-
-**Highly Modular Architecture:** Easily extend to new models, decoders, and optimization problems.
-
-### Quick Examples
-
-**Add New GNN Architecture:**
 ```python
-from combo_opt.core import AbstractGNNModel, ModelRegistry
-
 @ModelRegistry.register("transformer_gnn")
 class TransformerGNN(AbstractGNNModel):
     def forward(self, data):
-        # Your implementation
-        pass
+        ...
 ```
 
-**Create Custom Decoder:**
 ```python
-from combo_opt.core import AbstractDecoder
-
 class BeamSearchDecoder(AbstractDecoder):
     def decode(self, model_output, problem_data):
-        # Beam search implementation
-        pass
+        ...
 ```
 
-**Adapt to New Problem (e.g., TSP):**
 ```python
-from combo_opt.core import OptimizationProblem
-
 class TSPProblem(OptimizationProblem):
     def to_graph(self, instance):
-        # Convert TSP to graph
-        pass
+        ...
 ```
 
-### Resources
+Recursos adicionais:
+- 📓 [Notebooks](notebooks/)
+- 📖 [Guias de Dev](docs/dev/)
+- 🎓 [Tutoriais](docs/tutorials/)
+- 📋 [Templates](templates/)
 
-- 📓 **[Interactive Notebooks](notebooks/)** - Quickstart, training demos, custom architectures
-- 📖 **[Developer Guides](docs/dev/)** - Extending models, decoders, porting to other problems
-- 🎓 **[Tutorials](docs/tutorials/)** - Step-by-step walkthroughs
-- 📋 **[Code Templates](templates/)** - Ready-to-use templates for models, decoders, problems
-
-**See [EXTENSIBILITY_SUMMARY.md](EXTENSIBILITY_SUMMARY.md) for complete documentation.**
-
----
-
-## Installation & Reproduction
-
-### Quick Start
+## Instalação e Reprodução
 
 ```bash
-# 1. Clone repository
 git clone https://github.com/Marcux777/GNN_to_Knapsack.git
 cd GNN_to_Knapsack
-
-# 2. Install package
 pip install -e .
-
-# 3. Train a model
 knapsack-gnn train --config experiments/configs/train_default.yaml
-
-# 4. Evaluate with sampling
 knapsack-gnn eval --checkpoint checkpoints/run_XXX --strategy sampling
-
-# 5. Run full pipeline
 knapsack-gnn pipeline --strategies sampling,warm_start --seed 1337
 ```
 
-### Alternative: Reproduce Published Results
+Reproduzir run_20251020_104533 via Makefile:
 
 ```bash
-# Reproduce run_20251020_104533 using Makefile
 export PYTHONHASHSEED=1337
 make pipeline PIPELINE_STRATEGIES="sampling warm_start" \
-  SKIP_TRAIN=1 \
-  CHECKPOINT_DIR=checkpoints/run_20251020_104533 \
-  DEVICE=cpu \
-  SEED=1337
-
-# Verify results
-cat checkpoints/run_20251020_104533/evaluation/pipeline_summary.json
+  SKIP_TRAIN=1 CHECKPOINT_DIR=checkpoints/run_20251020_104533 \
+  DEVICE=cpu SEED=1337
 ```
 
-### Installation Options
+### Instalação
 
 ```bash
-# CPU-only (default)
 pip install -e .[cpu]
-
-# CUDA support
 pip install -e .[cuda]
-
-# Development tools (includes pytest, ruff, mypy)
 pip install -e .[dev]
-
-# Alternative: Use conda
 conda env create -f environment.yml
 conda activate knapsack-gnn
 ```
 
-### CLI Commands
+### CLI `knapsack-gnn`
 
-The `knapsack-gnn` command provides a unified interface:
+Inclui comandos para treino, avaliação, testes OOD, pipelines, ablações, comparação de baselines e demo interativa (veja README original para exemplos completos).
 
-```bash
-# Training
-knapsack-gnn train --config experiments/configs/train_default.yaml
-knapsack-gnn train --seed 42 --device cuda --epochs 100
+### Makefile (legado)
 
-# Evaluation
-knapsack-gnn eval --checkpoint checkpoints/run_001 --strategy sampling
-knapsack-gnn eval --checkpoint checkpoints/run_001 --strategy warm_start
+| Comando | Descrição |
+|---------|-----------|
+| `make install` | instala dependências |
+| `make train` | treina modelo |
+| `make eval` | avalia checkpoint |
+| `make pipeline` | workflow completo |
+| `make ood` | teste OOD |
+| `make test` | suite de testes |
+| `make lint` | lint/qualidade |
 
-# Out-of-distribution testing
-knapsack-gnn ood --checkpoint checkpoints/run_001 --sizes 100,150,200
+### Notas de reprodutibilidade
 
-# Full pipeline (train + evaluate)
-knapsack-gnn pipeline --config experiments/configs/pipeline_full.yaml
-knapsack-gnn pipeline --strategies sampling,warm_start --seed 1337
+- Configure `PYTHONHASHSEED` e `SEED` para execuções determinísticas.
+- Para reproduzir `run_20251020_104533`: seed 1337, commit `3ccf6b1`, CPU x86_64, Python 3.10+.
+- Todos os relatórios geram `results_per_instance.csv` e `summary_metrics.csv`.
 
-# Ablation studies
-knapsack-gnn ablation --mode features --config experiments/configs/ablations/pna_full.yaml
-knapsack-gnn ablation --mode architecture
-
-# Baseline comparison
-knapsack-gnn compare --checkpoint checkpoints/run_001 --baseline greedy --baseline random
-
-# Interactive demo
-knapsack-gnn demo checkpoints/run_001
-```
-
-### Makefile Commands (Legacy)
-
-| Command | Description | Example |
-|---------|-------------|---------|
-| `make install` | Install dependencies | `make install` |
-| `make train` | Train from scratch | `make train SEED=42 DEVICE=cpu EPOCHS=50` |
-| `make eval` | Evaluate checkpoint | `make eval STRATEGY=sampling CHECKPOINT_DIR=checkpoints/run_*` |
-| `make pipeline` | Full workflow (train+eval) | `make pipeline PIPELINE_STRATEGIES="sampling warm_start" SEED=42` |
-| `make ood` | OOD generalization test | `make ood STRATEGY=sampling OOD_SIZES="100 150 200"` |
-| `make test` | Run test suite | `make test` |
-| `make lint` | Code quality check | `make lint` |
-
-### Reproducibility Notes
-
-**Seeds**: All entry points support `SEED` parameter for deterministic results.
-```bash
-export PYTHONHASHSEED=1337  # For Python hash randomization
-make train SEED=1337        # Sets all RNG seeds (Python, NumPy, PyTorch, CUDA)
-```
-
-**Exact Reproduction**: To replicate `run_20251020_104533`:
-- Seed: 1337
-- Commit: `3ccf6b1` (or later)
-- Hardware: CPU (any modern x86_64)
-- Python: 3.10+
-- Expected gap: 0.070% ± 0.05% (sampling), 0.173% ± 0.10% (warm-start)
-
-**CSV Outputs**: All evaluation runs export:
-- `results_per_instance.csv`: Per-instance metrics with commit hash and timestamp
-- `summary_metrics.csv`: Aggregate statistics by strategy
-
----
-
-## Project Structure
+## Estrutura do Projeto
 
 ```
 .
-├── src/knapsack_gnn/          # Core library (importable package)
-│   ├── data/                  # Problem generation & graph construction
-│   ├── models/                # GNN architectures (PNA, GCN, GAT)
-│   ├── training/              # Training loops, metrics, utilities
-│   ├── decoding/              # Solution decoding strategies
-│   ├── solvers/               # OR-Tools integration
-│   ├── baselines/             # Classical heuristics
-│   ├── eval/                  # Evaluation & reporting
-│   ├── utils/                 # Logging & helpers
-│   ├── analysis/              # Statistical analysis
-│   ├── types.py               # Type definitions
-│   └── cli.py                 # Unified CLI
-│
-├── experiments/               # Experimental pipelines (not library)
-│   ├── pipelines/             # Training & evaluation scripts
-│   ├── analysis/              # Baseline comparison, outlier analysis
-│   ├── examples/              # Demo scripts
-│   ├── configs/               # YAML configurations
-│   └── visualization.py       # Plotting utilities
-│
-├── tests/                     # Test suite
-│   ├── unit/                  # Unit tests
-│   └── integration/           # Integration tests
-│
-├── checkpoints/               # Model checkpoints & results
-├── data/                      # Generated datasets
-└── results/                   # Experiment outputs
+├── src/knapsack_gnn/
+├── experiments/
+├── tests/
+├── checkpoints/
+├── data/
+└── results/
 ```
 
-**Design Principles:**
-- `src/knapsack_gnn/` - Stable, importable library code
-- `experiments/` - Research pipelines that use the library
-- `tests/` - Comprehensive test coverage
-- `configs/` - Version-controlled experiment configurations
+Princípios:
+- `src/knapsack_gnn/`: biblioteca estável
+- `experiments/`: pipelines de pesquisa
+- `tests/`: cobertura completa
+- `configs/`: configs versionadas
 
----
+## 📊 Resumo de Resultados
 
-## 📊 Results Summary
+- **BC Ranker Supervisionado (30 épocas, 8 features)**:
+  - PNA: gap médio 0,55% (mediana 0,16%), factibilidade 100%.
+  - GCN: gap médio 0,54% (mediana 0,17%), factibilidade 100%.
+  - GAT: gap médio 0,51% (mediana 0,16%), factibilidade 100%.
+  - Checkpoints + métricas em `checkpoints/results/bc_ranker_full/<arch>/`.
+  - Artefatos de interpretabilidade (scores × seleção, densidade × score, curva cumulativa + Spearman e sensibilidade ±5% de capacidade) em `results/reports/bc_ranker_v1/`.
 
-**Main Finding:** 99.93% of optimal value (0.068% gap) with adaptive sampling; warm-start ILP reaches 0.18% gap with 1.9 ms refinements.
+- **Decoders em run_20251020_104533**:
 
-| Strategy | Mean Gap | Median Gap | Feasibility | Mean Time | Notes |
-|----------|----------|------------|-------------|-----------|-------|
-| Sampling | **0.068%** | **0.00%** | **100%** | 14.5 ms | 61.9 samples avg |
-| Warm Start | 0.18% | 0.00% | **100%** | 21.8 ms | ILP refine 1.9 ms avg |
+| Estratégia | Gap médio | Gap mediano | Viabilidade | Tempo médio | Notas |
+|------------|-----------|-------------|-------------|-------------|-------|
+| Sampling | **0,068%** | **0,00%** | **100%** | 14,5 ms | 61,9 amostras |
+| Warm Start | 0,18% | 0,00% | **100%** | 21,8 ms | ILP 1,9 ms |
 
-**For complete experimental results, see:**
-- 📄 [Experimental Results Report](docs/reports/experimental_results.md) - Full benchmarks, ablations, decoder comparisons
-- 📄 [Validation Report](docs/reports/validation_report_2025-10-20.md) - Statistical validation framework
-- 📄 [Documentation Index](docs/index.md) - Complete documentation map
+Mais detalhes em:
+- 📄 [Experimental Results Report](docs/reports/experimental_results.md)
+- 📄 [Validation Report](docs/reports/validation_report_2025-10-20.md)
+- 📄 [Documentation Index](docs/index.md)
 
----
+## 🤝 Contribuições
 
-## 🤝 Contributing
+Confira:
+- [Contributing Guide](CONTRIBUTING.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- `.codex/` – pacote de configuração do Codex (system, style, runbook, templates). Leia `/.codex/system.md` antes de automatizar tarefas.
 
-We welcome contributions! Please see:
-- [Contributing Guide](CONTRIBUTING.md) - How to contribute, code standards, PR process
-- [Code of Conduct](CODE_OF_CONDUCT.md) - Community guidelines
-
----
-
-## 📚 Citation
-
-If you use this code in your research, please cite:
+## 📚 Citação
 
 ```bibtex
 @software{knapsack_gnn_2025,
@@ -383,26 +277,18 @@ If you use this code in your research, please cite:
 }
 ```
 
-Alternatively, use the "Cite this repository" button on GitHub (uses [CITATION.cff](CITATION.cff)).
+Use também o botão “Cite this repository” (arquivo [CITATION.cff](CITATION.cff)).
 
----
-
-## 📖 References
-
-This implementation is based on:
+## 📖 Referências
 
 1. [Learning to Solve Combinatorial Optimization with GNNs](https://arxiv.org/abs/2211.13436)
 2. [Principal Neighbourhood Aggregation](https://arxiv.org/abs/2004.05718)
 3. [Attention-based GNN for Knapsack](https://github.com/rushhan/Attention-based-GNN-reinforcement-learning-for-Knapsack-Problem)
 
----
+## 📄 Licença
 
-## 📄 License
-
-MIT License - see [LICENSE](LICENSE) for details.
+Licença MIT – veja [LICENSE](LICENSE).
 
 ---
 
-**Project Status:** ✅ Production-ready | 🔬 Research-grade | 📚 Well-documented
-
-For detailed results, validation methodology, and implementation details, see the [documentation](docs/index.md).
+**Status do projeto:** ✅ Pronto para produção • 🔬 Nível de pesquisa • 📚 Documentação completa. Consulte [docs/index.md](docs/index.md) para detalhes.

@@ -1,0 +1,11 @@
+{
+  "architecture": "gcn",
+  "seeds": [
+    13,
+    37,
+    73
+  ],
+  "mean_gap_mean": 0.5393932413873618,
+  "median_gap_mean": 0.17042862775720372,
+  "feasibility_rate_mean": 1.0
+}

@@ -178,7 +178,8 @@ def check_degree_histogram(datasets_by_size: dict, output_dir: Path):
     # Plot degree distribution by size
     fig, ax = plt.subplots(figsize=(10, 6))
 
-    colors = plt.cm.viridis(np.linspace(0, 0.9, len(degree_by_size)))
+    cmap = plt.get_cmap("viridis")
+    colors = cmap(np.linspace(0, 0.9, len(degree_by_size)))
 
     for (size, degrees), color in zip(sorted(degree_by_size.items()), colors, strict=False):
         unique_degrees, counts = np.unique(degrees, return_counts=True)
@@ -206,11 +207,11 @@ def check_degree_histogram(datasets_by_size: dict, output_dir: Path):
     # Statistics
     print("\nDegree Statistics by Size:")
     for size in sorted(degree_by_size.keys()):
-        degrees = np.array(degree_by_size[size])
+        deg_array = np.array(degree_by_size[size])
         print(
-            f"  Size {size}: mean={np.mean(degrees):.2f}, "
-            f"std={np.std(degrees):.2f}, "
-            f"min={np.min(degrees)}, max={np.max(degrees)}"
+            f"  Size {size}: mean={np.mean(deg_array):.2f}, "
+            f"std={np.std(deg_array):.2f}, "
+            f"min={np.min(deg_array)}, max={np.max(deg_array)}"
         )
 
     print("=" * 80)

@@ -3,10 +3,18 @@ Warm-start ILP solver utilities for the Knapsack problem using OR-Tools CP-SAT.
 """
 
 import time
+from typing import Any
 
 import numpy as np
 import torch
-from ortools.sat.python import cp_model
+
+cp_model: Any | None
+try:
+    from ortools.sat.python import cp_model as _cp_model
+
+    cp_model = _cp_model
+except ImportError:  # pragma: no cover - optional dependency
+    cp_model = None
 
 
 def solve_knapsack_warm_start(
@@ -39,6 +47,24 @@ def solve_knapsack_warm_start(
             best_bound (float or None), fixed_count (int),
             hint_count (int), branches (int), conflicts (int), stats (str)
     """
+    if cp_model is None:
+        fallback_solution, fallback_objective = _dp_fallback_solver(weights, values, capacity)
+        fallback_status = 1  # Mimic OPTIMAL
+        hint_count = int(initial_solution.size) if initial_solution is not None else 0
+        return {
+            "status": fallback_status,
+            "status_name": "OPTIMAL",
+            "solution": fallback_solution,
+            "objective": fallback_objective,
+            "wall_time": 0.0,
+            "best_bound": fallback_objective,
+            "fixed_count": len(fixed_variables) if fixed_variables else 0,
+            "hint_count": hint_count,
+            "branches": 0,
+            "conflicts": 0,
+            "stats": "Fallback dynamic-programming solver",
+        }
+
     weights = np.asarray(weights, dtype=np.int64)
     values = np.asarray(values, dtype=np.int64)
     capacity = int(capacity)
@@ -211,3 +237,35 @@ def refine_solution(
     ilp_time = time.perf_counter() - start_time
 
     return objective, solution, ilp_time, status
+
+
+def _dp_fallback_solver(
+    weights: np.ndarray, values: np.ndarray, capacity: float
+) -> tuple[np.ndarray, float]:
+    """Simple DP solver used when OR-Tools is unavailable."""
+    w = np.asarray(weights, dtype=np.int64)
+    v = np.asarray(values, dtype=np.float64)
+    cap = int(capacity)
+    n_items = w.size
+
+    dp = np.zeros((n_items + 1, cap + 1), dtype=np.float64)
+    for i in range(1, n_items + 1):
+        w_i = int(w[i - 1])
+        v_i = float(v[i - 1])
+        for c in range(cap + 1):
+            dp[i, c] = dp[i - 1, c]
+            if c >= w_i:
+                candidate = dp[i - 1, c - w_i] + v_i
+                if candidate > dp[i, c]:
+                    dp[i, c] = candidate
+
+    solution = np.zeros(n_items, dtype=np.int32)
+    remaining = cap
+    for i in range(n_items, 0, -1):
+        if remaining < 0:
+            break
+        if dp[i, remaining] > dp[i - 1, remaining] + 1e-9:
+            solution[i - 1] = 1
+            remaining -= int(w[i - 1])
+
+    return solution, float(dp[n_items, cap])

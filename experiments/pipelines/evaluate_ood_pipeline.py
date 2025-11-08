@@ -358,11 +358,14 @@ def plot_ood_results(all_results: list[dict], training_size_range: tuple, output
             labels.append(f"n={result['problem_size']}")
 
     if gap_distributions:
-        bp = ax.boxplot(gap_distributions, labels=labels, patch_artist=True)
-        colors = plt.cm.viridis(np.linspace(0.3, 0.9, len(gap_distributions)))
+        bp = ax.boxplot(gap_distributions, patch_artist=True)
+        cmap = plt.get_cmap("viridis")
+        colors = cmap(np.linspace(0.3, 0.9, len(gap_distributions)))
         for patch, color in zip(bp["boxes"], colors, strict=False):
             patch.set_facecolor(color)
             patch.set_alpha(0.7)
+        ax.set_xticks(np.arange(1, len(labels) + 1))
+        ax.set_xticklabels(labels, rotation=15, ha="right")
 
     ax.set_xlabel("Problem Size", fontsize=12)
     ax.set_ylabel("Optimality Gap (%)", fontsize=12)

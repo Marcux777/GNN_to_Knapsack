@@ -44,9 +44,6 @@ make lint
 
 # Type check
 make mypy
-
-# Build documentation
-make docs
 ```
 
 ## Development Workflow
@@ -68,7 +65,6 @@ make docs
    make test        # Run tests with coverage
    make lint        # Check code quality
    make mypy        # Type check
-   make docs        # Build docs locally
    ```
 
 4. **Commit your changes**
@@ -83,6 +79,28 @@ make docs
    git push origin feature/your-feature-name
    ```
    Pre-push hooks will run type checking and quick tests.
+
+### Codex CI Smoke Test
+
+Use este checklist para validar rapidamente o job `codex-and-tests` no GitHub Actions:
+
+1. **Crie um branch de smoke**  
+   ```bash
+   git checkout -b ci-smoke/$(date +%Y%m%d)
+   ```  
+   Faça uma alteração inofensiva (ex.: ajuste em `README.md`) e confirme que `make ci-local` passa antes de seguir.
+
+2. **Abra um PR apontando para `main`**  
+   Dê um título explícito como `chore(ci): smoke test codex-and-tests`. O novo workflow roda automaticamente e deve exibir os passos `Verify .codex artifacts` e `Run ci-local` no GitHub Actions.
+
+3. **Observe o workflow**  
+   No PR, abra a aba *Checks* → `codex-and-tests`. O log deve mostrar que `.codex/*` foi verificado e que o `make ci-local` executou (format → lint → mypy → pytest). Qualquer falha local reaparece aqui.
+
+4. **Teste manual via `workflow_dispatch` (opcional)**  
+   Sem abrir PR, vá em *Actions > CI > Run workflow* (branch `main`). Este trigger também roda `codex-and-tests`, útil para validar alterações no próprio workflow.
+
+5. **Feche o PR de smoke**  
+   Depois de confirmar que tudo passou, feche/arquive o PR. Nenhum merge é necessário — a ideia é apenas observar o job em produção.
 
 ## Code Style
 
@@ -236,24 +254,18 @@ This is automatically checked in pre-push hooks and CI.
 
 ## Documentation
 
-### Building Documentation
-
-```bash
-# Build documentation
-make docs
-
-# Serve documentation locally
-make docs-serve
-# Visit http://127.0.0.1:8000
-```
+All documentation lives directly in the `docs/` directory as Markdown files. There is no static
+site generator or deployment step—simply edit the relevant Markdown file (or add a new one) and
+link to it from the README or other docs when needed.
 
 ### Adding Documentation
 
-- **User guides**: Add to `docs/guides/`
-- **API documentation**: Automatically generated from docstrings
+- **User guides**: Place in `docs/guides/`
+- **API notes and module explanations**: Keep in `docs/api/`
 - **Reports**: Add to `docs/reports/`
 
-Documentation uses **MkDocs** with **Material theme** and **mkdocstrings** for API docs.
+When adding a new page, ensure there is a link from an existing guide or README section so it is
+discoverable.
 
 ## Makefile Commands
 
@@ -269,8 +281,6 @@ Common development commands:
 | `make mypy` | Type check with mypy |
 | `make test` | Run tests with coverage |
 | `make test-quick` | Run quick tests only |
-| `make docs` | Build documentation |
-| `make docs-serve` | Serve docs locally |
 | `make clean` | Clean build artifacts |
 
 ## CI/CD
@@ -284,7 +294,6 @@ The CI pipeline runs on every push and PR:
 3. **Type Check** - Runs mypy type checking
 4. **Tests** - Runs test suite with coverage (70% minimum)
 5. **Dependency Check** - Verifies requirements are in sync
-6. **Docs Build** - Builds documentation with strict mode
 
 See `.github/workflows/ci.yml` for details.
 

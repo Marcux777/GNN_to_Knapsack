@@ -1,0 +1,58 @@
+model: gpt-5-thinking
+temperature: 0.2
+max_output_tokens: 2200
+
+read_allowlist:
+  - "src/**"
+  - "experiments/**"
+  - "training/**"
+  - "baselines/**"
+  - "inference/**"
+  - "scripts/**"
+  - "configs/**"
+  - "docs/**"
+  - "results/**"
+  - "tests/**"
+  - "Makefile"
+  - "pyproject.toml"
+  - "requirements*.txt"
+  - ".codex/**"
+  - "data/README.md"
+
+write_allowlist:
+  - "src/**"
+  - "experiments/**"
+  - "training/**"
+  - "baselines/**"
+  - "inference/**"
+  - "scripts/**"
+  - "configs/**"
+  - "docs/**"
+  - "results/**"
+  - "tests/**"
+  - ".codex/**"
+  - "README.md"
+  - "Makefile"
+
+disallowed:
+  - "**/.env"
+  - "**/secrets/**"
+  - "**/*.pem"
+  - "checkpoints/**"
+  - "data/datasets/**"
+
+commands:
+  test: "make test-quick"
+  lint: "make lint"
+  typecheck: "make mypy"
+  run_dev: "python Knapsack_GNN.py --demo quick"
+  smoke: "python verify_install.py"
+  build: "python train.py --generate_data --train_size 200 --val_size 50 --test_size 50"
+  ci: "make ci-local"
+
+timeouts:
+  command_seconds: 120
+
+conventions:
+  commit: "type(scope): summary  # ex: fix(decoding): avoid infeasible repair"
+  branch_prefixes: ["feat/", "fix/", "refactor/", "docs/", "exp/"]

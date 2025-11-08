@@ -3,16 +3,38 @@ Graph Builder for Knapsack Problem
 Converts Knapsack instances into tripartite graphs for GNN processing
 """
 
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import torch
+from numpy.typing import NDArray
 from torch_geometric.data import Data, Dataset
 
 from .generator import KnapsackDataset, KnapsackInstance
 
 if TYPE_CHECKING:
-    import matplotlib.pyplot as plt
+    from matplotlib.figure import Figure
+
+
+def _rank_normalize(arr: NDArray[np.float32]) -> NDArray[np.float32]:
+    """Return ranks scaled to [0,1]."""
+    if arr.size == 0:
+        return np.zeros_like(arr, dtype=np.float32)
+    order = np.argsort(arr, kind="mergesort")
+    ranks = np.empty_like(order, dtype=np.float32)
+    ranks[order] = np.arange(arr.size, dtype=np.float32)
+    denom = max(arr.size - 1, 1)
+    result = cast(NDArray[np.float32], (ranks / denom).astype(np.float32, copy=False))
+    return result
+
+
+def _zscore(arr: NDArray[np.float32]) -> NDArray[np.float32]:
+    """Return z-score normalized copy with safe std."""
+    mean = np.mean(arr)
+    std = np.std(arr)
+    denom = std if std > 1e-6 else 1.0
+    result = cast(NDArray[np.float32], ((arr - mean) / denom).astype(np.float32, copy=False))
+    return result
 
 
 class KnapsackGraphBuilder:
@@ -43,28 +65,55 @@ class KnapsackGraphBuilder:
         n_items = instance.n_items
 
         # === Node Features ===
-        # Item nodes features: [weight, value]
-        item_features = np.stack([instance.weights, instance.values], axis=1).astype(np.float32)
+        weights = instance.weights.astype(np.float32)
+        values = instance.values.astype(np.float32)
 
-        # Constraint node features: [capacity, 0] to match item feature dimension
-        constraint_features = np.array([[instance.capacity, 0.0]], dtype=np.float32)
+        ratio = values / np.maximum(weights, 1e-6)
+        value_rank = _rank_normalize(values)
+        weight_rank = _rank_normalize(weights)
+        ratio_rank = _rank_normalize(ratio)
+        value_z = _zscore(values)
+        weight_z = _zscore(weights)
+
+        item_features = np.stack(
+            [
+                weights.copy(),
+                values.copy(),
+                ratio,
+                value_rank,
+                weight_rank,
+                ratio_rank,
+                value_z,
+                weight_z,
+            ],
+            axis=1,
+        ).astype(np.float32)
+
+        # Constraint node features have matching dimensionality
+        constraint_features = np.zeros((1, item_features.shape[1]), dtype=np.float32)
+        constraint_features[0, 0] = instance.capacity
 
         # Normalize if requested
         if self.normalize_features:
             # Normalize item features by max values
-            max_weight = np.max(instance.weights)
-            max_value = np.max(instance.values)
+            max_weight = np.max(weights)
+            max_value = np.max(values)
             item_features[:, 0] /= max_weight if max_weight > 0 else 1.0
             item_features[:, 1] /= max_value if max_value > 0 else 1.0
 
+            max_ratio = np.max(ratio)
+            if max_ratio > 0:
+                item_features[:, 2] /= max_ratio
+
             # Normalize constraint by total weight
-            total_weight = np.sum(instance.weights)
-            constraint_features /= total_weight if total_weight > 0 else 1.0
+            total_weight = np.sum(weights)
+            norm = total_weight if total_weight > 0 else 1.0
+            constraint_features[:, 0] /= norm
 
         # Concatenate all node features
         # Node indices: [0, n_items-1] are item nodes, n_items is constraint node
-        x = np.vstack([item_features, constraint_features])
-        x = torch.tensor(x, dtype=torch.float32)
+        x_np = np.vstack([item_features, constraint_features])
+        node_features = torch.tensor(x_np, dtype=torch.float32)
 
         # === Edge Construction ===
         # Create bipartite edges: each item connects to constraint node
@@ -95,7 +144,7 @@ class KnapsackGraphBuilder:
         # === Additional attributes ===
         # Store original instance data for evaluation
         data = Data(
-            x=x,
+            x=node_features,
             edge_index=edge_index,
             y=y,
             node_types=node_types,
@@ -155,7 +204,7 @@ class KnapsackGraphDataset(Dataset):
         return self.graphs[idx]
 
 
-def visualize_graph(data: Data, title: str = "Knapsack Graph") -> "plt":
+def visualize_graph(data: Data, title: str = "Knapsack Graph") -> "Figure":
     """
     Visualize a Knapsack graph using networkx and matplotlib
 
@@ -216,7 +265,7 @@ def visualize_graph(data: Data, title: str = "Knapsack Graph") -> "plt":
     plt.title(title)
     plt.axis("off")
     plt.tight_layout()
-    return plt
+    return plt.gcf()
 
 
 if __name__ == "__main__":
@@ -247,8 +296,8 @@ if __name__ == "__main__":
 
     # Visualize
     print("\nVisualizing graph...")
-    plt = visualize_graph(graph, title=f"Knapsack Graph (Optimal Value: {instance.optimal_value})")
-    plt.savefig("knapsack_graph_example.png", dpi=150, bbox_inches="tight")
+    fig = visualize_graph(graph, title=f"Knapsack Graph (Optimal Value: {instance.optimal_value})")
+    fig.savefig("knapsack_graph_example.png", dpi=150, bbox_inches="tight")
     print("Graph saved to knapsack_graph_example.png")
 
 

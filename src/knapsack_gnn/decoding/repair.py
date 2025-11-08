@@ -21,14 +21,27 @@ class SolutionRepairer:
     Repair and improve knapsack solutions using greedy heuristics and local search.
     """
 
-    def __init__(self, max_repair_iterations: int = 100, max_local_search_iterations: int = 50):
+    def __init__(
+        self,
+        max_repair_iterations: int = 100,
+        max_local_search_iterations: int = 50,
+        n_restarts: int = 1,
+        ratio_jitter: float = 0.0,
+        random_state: int | None = None,
+    ):
         """
         Args:
             max_repair_iterations: Maximum iterations for repair phase
             max_local_search_iterations: Maximum iterations for local search
+            n_restarts: How many randomized restarts to try (helps reduce tail gaps)
+            ratio_jitter: Std-dev of gaussian noise added to value/weight ratios to diversify
+            random_state: Optional RNG seed for deterministic behavior
         """
         self.max_repair_iterations = max_repair_iterations
         self.max_local_search_iterations = max_local_search_iterations
+        self.n_restarts = max(1, int(n_restarts))
+        self.ratio_jitter = max(0.0, ratio_jitter)
+        self.rng = np.random.default_rng(random_state)
 
     def check_feasibility(self, solution: np.ndarray, weights: np.ndarray, capacity: float) -> bool:
         """Check if solution is feasible (doesn't exceed capacity)."""
@@ -86,12 +99,18 @@ class SolutionRepairer:
 
         return solution
 
+    def _apply_ratio_noise(self, ratios: np.ndarray) -> np.ndarray:
+        if self.ratio_jitter <= 0 or ratios.size == 0:
+            return ratios
+        return ratios + self.rng.normal(scale=self.ratio_jitter, size=ratios.shape)
+
     def greedy_repair_with_reinsertion(
         self,
         solution: np.ndarray,
         weights: np.ndarray,
         values: np.ndarray,
         capacity: float,
+        randomize: bool | None = None,
     ) -> np.ndarray:
         """
         Repair infeasible solution, then greedily refill with remaining items.
@@ -109,6 +128,7 @@ class SolutionRepairer:
             Improved feasible solution
         """
         solution = solution.copy()
+        use_randomization = randomize if randomize is not None else self.ratio_jitter > 0
 
         # Step 1: Remove items until feasible
         if not self.check_feasibility(solution, weights, capacity):
@@ -122,6 +142,9 @@ class SolutionRepairer:
                         values[selected] / weights[selected],
                         -np.inf,
                     )
+
+                if use_randomization:
+                    ratios = self._apply_ratio_noise(ratios)
 
                 sorted_indices = selected[np.argsort(ratios)]
 
@@ -143,6 +166,9 @@ class SolutionRepairer:
                     values[remaining] / weights[remaining],
                     -np.inf,
                 )
+
+            if use_randomization:
+                remaining_ratios = self._apply_ratio_noise(remaining_ratios)
 
             sorted_remaining = remaining[np.argsort(-remaining_ratios)]
 
@@ -191,6 +217,8 @@ class SolutionRepairer:
 
             # Try removing each selected item
             selected = np.where(solution == 1)[0]
+            if self.ratio_jitter > 0 and selected.size > 1:
+                self.rng.shuffle(selected)
             for idx in selected:
                 candidate = solution.copy()
                 candidate[idx] = 0
@@ -210,6 +238,8 @@ class SolutionRepairer:
 
             # Try adding each unselected item
             unselected = np.where(solution == 0)[0]
+            if self.ratio_jitter > 0 and unselected.size > 1:
+                self.rng.shuffle(unselected)
             for idx in unselected:
                 candidate = solution.copy()
                 candidate[idx] = 1
@@ -261,6 +291,10 @@ class SolutionRepairer:
 
         selected = np.where(solution == 1)[0]
         unselected = np.where(solution == 0)[0]
+        if self.ratio_jitter > 0 and selected.size > 1:
+            self.rng.shuffle(selected)
+        if self.ratio_jitter > 0 and unselected.size > 1:
+            self.rng.shuffle(unselected)
 
         for _iteration in range(max_iterations):
             improved = False
@@ -294,6 +328,45 @@ class SolutionRepairer:
 
         return solution, n_improvements
 
+    def _single_hybrid_pass(
+        self,
+        base_solution: np.ndarray,
+        weights: np.ndarray,
+        values: np.ndarray,
+        capacity: float,
+        use_1swap: bool,
+        use_2opt: bool,
+        randomize: bool,
+    ) -> tuple[np.ndarray, dict]:
+        working_solution = self.greedy_repair_with_reinsertion(
+            base_solution, weights, values, capacity, randomize=randomize
+        )
+        after_repair_value = self.compute_value(working_solution, values)
+        after_1swap_value = after_repair_value
+        n_improvements_1swap = 0
+        if use_1swap:
+            working_solution, n_improvements_1swap = self.local_search_1swap(
+                working_solution, weights, values, capacity
+            )
+            after_1swap_value = self.compute_value(working_solution, values)
+
+        n_improvements_2opt = 0
+        if use_2opt:
+            working_solution, n_improvements_2opt = self.local_search_2opt(
+                working_solution, weights, values, capacity
+            )
+
+        final_value = self.compute_value(working_solution, values)
+        metadata = {
+            "after_repair_value": float(after_repair_value),
+            "after_1swap_value": float(after_1swap_value),
+            "final_value": float(final_value),
+            "final_feasible": bool(self.check_feasibility(working_solution, weights, capacity)),
+            "n_improvements_1swap": int(n_improvements_1swap),
+            "n_improvements_2opt": int(n_improvements_2opt),
+        }
+        return working_solution, metadata
+
     def hybrid_repair_and_search(
         self,
         solution: np.ndarray,
@@ -302,6 +375,8 @@ class SolutionRepairer:
         capacity: float,
         use_1swap: bool = True,
         use_2opt: bool = False,
+        n_restarts: int | None = None,
+        randomize: bool | None = None,
     ) -> tuple[np.ndarray, dict]:
         """
         Full pipeline: repair + local search.
@@ -321,46 +396,50 @@ class SolutionRepairer:
         """
         initial_value = self.compute_value(solution, values)
         initial_feasible = self.check_feasibility(solution, weights, capacity)
+        restarts = n_restarts or self.n_restarts
+        use_randomization = randomize if randomize is not None else self.ratio_jitter > 0
 
-        # Step 1: Repair
-        solution = self.greedy_repair_with_reinsertion(solution, weights, values, capacity)
-        after_repair_value = self.compute_value(solution, values)
+        best_solution: np.ndarray = solution.copy()
+        best_metadata: dict | None = None
+        best_value = float(initial_value)
 
-        # Step 2: Local search (1-swap)
-        n_improvements_1swap = 0
-        if use_1swap:
-            solution, n_improvements_1swap = self.local_search_1swap(
-                solution, weights, values, capacity
+        for _ in range(max(1, restarts)):
+            candidate_solution, meta = self._single_hybrid_pass(
+                solution,
+                weights,
+                values,
+                capacity,
+                use_1swap=use_1swap,
+                use_2opt=use_2opt,
+                randomize=use_randomization,
             )
+            candidate_value = meta["final_value"]
+            if candidate_value > best_value:
+                best_value = candidate_value
+                best_solution = candidate_solution
+                best_metadata = meta
 
-        after_1swap_value = self.compute_value(solution, values)
+        metadata = best_metadata or {}
+        final_value = metadata.get("final_value", best_value)
+        final_feasible = metadata.get(
+            "final_feasible", self.check_feasibility(best_solution, weights, capacity)
+        )
 
-        # Step 3: Local search (2-opt) - optional
-        n_improvements_2opt = 0
-        if use_2opt:
-            solution, n_improvements_2opt = self.local_search_2opt(
-                solution, weights, values, capacity
-            )
+        metadata.update(
+            {
+                "initial_value": float(initial_value),
+                "initial_feasible": bool(initial_feasible),
+                "final_value": float(final_value),
+                "final_feasible": bool(final_feasible),
+                "value_improvement": float(final_value - initial_value),
+                "value_improvement_pct": float(
+                    (final_value - initial_value) / max(initial_value, 1) * 100
+                ),
+                "restarts": int(restarts),
+            }
+        )
 
-        final_value = self.compute_value(solution, values)
-        final_feasible = self.check_feasibility(solution, weights, capacity)
-
-        metadata = {
-            "initial_value": float(initial_value),
-            "initial_feasible": bool(initial_feasible),
-            "after_repair_value": float(after_repair_value),
-            "after_1swap_value": float(after_1swap_value),
-            "final_value": float(final_value),
-            "final_feasible": bool(final_feasible),
-            "n_improvements_1swap": int(n_improvements_1swap),
-            "n_improvements_2opt": int(n_improvements_2opt),
-            "value_improvement": float(final_value - initial_value),
-            "value_improvement_pct": float(
-                (final_value - initial_value) / max(initial_value, 1) * 100
-            ),
-        }
-
-        return solution, metadata
+        return best_solution, metadata
 
 
 # Convenience functions
@@ -370,6 +449,8 @@ def repair_solution(
     values: np.ndarray,
     capacity: float,
     use_local_search: bool = True,
+    n_restarts: int = 1,
+    ratio_jitter: float = 0.0,
 ) -> np.ndarray:
     """
     Convenience function to repair and optionally improve a solution.
@@ -384,7 +465,7 @@ def repair_solution(
     Returns:
         Repaired (and optionally improved) solution
     """
-    repairer = SolutionRepairer()
+    repairer = SolutionRepairer(n_restarts=n_restarts, ratio_jitter=ratio_jitter)
 
     if use_local_search:
         solution, _ = repairer.hybrid_repair_and_search(
@@ -402,6 +483,8 @@ def improve_solution(
     values: np.ndarray,
     capacity: float,
     max_iterations: int = 50,
+    ratio_jitter: float = 0.0,
+    n_restarts: int = 1,
 ) -> tuple[np.ndarray, int]:
     """
     Improve a feasible solution using local search.
@@ -416,7 +499,11 @@ def improve_solution(
     Returns:
         Tuple of (improved_solution, n_improvements)
     """
-    repairer = SolutionRepairer(max_local_search_iterations=max_iterations)
+    repairer = SolutionRepairer(
+        max_local_search_iterations=max_iterations,
+        ratio_jitter=ratio_jitter,
+        n_restarts=n_restarts,
+    )
     return repairer.local_search_1swap(solution, weights, values, capacity)
 
 

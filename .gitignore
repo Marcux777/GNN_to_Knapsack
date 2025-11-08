@@ -43,6 +43,7 @@ Thumbs.db
 logs/
 wandb/
 mlruns/
+.coverage
 
 # Data and model artifacts (not publication snapshots)
 # Note: Specific important files are versioned via exceptions below
@@ -51,6 +52,10 @@ data/*
 
 checkpoints/*
 !checkpoints/.gitkeep
+!checkpoints/ablations/**
+
+# Documentation build artifacts
+site/
 
 # PyTorch models (managed by Git LFS)
 # See .gitattributes for LFS configuration

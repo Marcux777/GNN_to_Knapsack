@@ -1,0 +1,11 @@
+{
+  "architecture": "pna",
+  "seeds": [
+    13,
+    37,
+    73
+  ],
+  "mean_gap_mean": 0.5484430462826615,
+  "median_gap_mean": 0.1569330033369042,
+  "feasibility_rate_mean": 1.0
+}

@@ -418,34 +418,28 @@ def test_train_full_pipeline():
 
 ## Documentation
 
-### Building Documentation
-
-```bash
-# Build docs
-make docs
-
-# Serve docs locally
-make docs-serve
-# Visit http://127.0.0.1:8000
-```
+Documentation lives directly inside the `docs/` directory as Markdown. There is no generated site,
+so updating or adding documentation is as simple as editing the relevant `.md` file and making sure
+it is linked from the README or another guide.
 
 ### Documentation Structure
 
 ```
 docs/
-├── api/              # API reference (auto-generated from docstrings)
+├── api/              # Module notes and API references
 ├── guides/           # User guides and tutorials
 │   ├── quickstart.md
 │   ├── cli_usage.md
 │   └── contributing.md
-└── stylesheets/      # Custom styles
+└── stylesheets/      # Optional assets for rendered Markdown
 ```
 
 ### Adding Documentation
 
-1. **API Documentation**: Update docstrings in source code
-2. **Guides**: Add markdown files in `docs/guides/`
-3. **Update `mkdocs.yml`**: Add new pages to navigation
+1. **Guides**: Add Markdown files in `docs/guides/`
+2. **API references**: Update the files in `docs/api/`
+3. **Reports**: Add new documents in `docs/reports/`
+4. **Link it**: Reference the new content from an existing page so readers can find it
 
 ## Pull Request Process
 
@@ -499,8 +493,7 @@ make test-quick     # Fast tests
 make test          # Full test suite
 
 # Documentation
-make docs          # Build documentation
-make docs-serve    # Serve docs locally
+# Edit Markdown in docs/ and link from README (no build step)
 
 # Commits
 make commit        # Interactive commit helper

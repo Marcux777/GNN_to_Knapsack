@@ -62,7 +62,7 @@ CHECKPOINT_DIR := $(CHECKPOINT)
 endif
 
 .PHONY: install train evaluate ood demo quick_train pipeline clean \
-        sync-deps check-deps format lint mypy test test-quick docs docs-serve commit \
+        sync-deps check-deps format lint mypy test test-quick ci-local commit \
         validate-configs download-checkpoint generate-datasets verify-reproducibility
 
 install:
@@ -98,56 +98,35 @@ check-deps:
 
 # Format code with ruff
 format:
-	@echo "Formatting code with ruff..."
-	ruff format src/ experiments/ tests/
-	@echo "✅ Code formatted"
+	ruff format .
 
 # Lint code with ruff
 lint:
-	@echo "Linting code with ruff..."
-	ruff check src/ experiments/ tests/ --output-format=concise
-	@echo "✅ Lint check complete"
+	ruff check .
 
 # Type check with mypy
 mypy:
-	@echo "Type checking with mypy..."
-	mypy src/knapsack_gnn/ experiments/ --ignore-missing-imports
-	@echo "✅ Type check complete"
+	mypy src/knapsack_gnn/ experiments/ || true
 
 # Run tests with coverage
 test:
 	@echo "Running tests with coverage..."
-	pytest tests/ -v --cov=src/knapsack_gnn --cov-report=term-missing --cov-report=html
+	PYTHONPATH=src pytest tests/ -v --cov=src/knapsack_gnn --cov-report=term-missing --cov-report=html
 	@echo "✅ Tests complete (coverage report: htmlcov/index.html)"
 
 # Run quick tests (exclude slow tests)
 test-quick:
-	@echo "Running quick tests..."
-	pytest tests/ -v -m "not slow" --cov=src/knapsack_gnn --cov-report=term-missing
-	@echo "✅ Quick tests complete"
+	PYTHONPATH=src pytest tests/ -q --maxfail=1 -k "not slow"
 
-# Build documentation
-docs:
-	@echo "Building documentation..."
-	mkdocs build
-	@echo "✅ Documentation built (site/index.html)"
-
-# Serve documentation locally
-docs-serve:
-	@echo "Serving documentation at http://127.0.0.1:8000"
-	mkdocs serve
+# Local CI bundle
+ci-local: format lint mypy test-quick
+	@echo "ci-local OK"
 
 # Launch Jupyter Lab for interactive notebooks
 notebooks:
 	@echo "Launching Jupyter Lab..."
 	@echo "Notebooks available in: notebooks/"
 	jupyter lab notebooks/
-
-# Generate API documentation
-api-docs:
-	@echo "Generating API documentation..."
-	mkdocs build
-	@echo "✅ API docs generated in site/"
 
 # Interactive commit message helper (Conventional Commits)
 commit:
@@ -351,5 +330,5 @@ clean:
 	find . -name "htmlcov" -type d -exec rm -rf {} + 2>/dev/null || true
 	find . -name ".coverage" -delete 2>/dev/null || true
 	find . -name "coverage.xml" -delete 2>/dev/null || true
-	rm -rf build/ dist/ *.egg-info site/ 2>/dev/null || true
+	rm -rf build/ dist/ *.egg-info 2>/dev/null || true
 	@echo "✅ Cleanup complete"

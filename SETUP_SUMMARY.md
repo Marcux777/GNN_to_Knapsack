@@ -10,7 +10,7 @@ Successfully implemented a comprehensive professional development environment fo
 - Automated code quality checks
 - Pre-commit hooks for fast local validation
 - Robust CI/CD pipeline
-- Professional documentation generation
+- Versioned Markdown documentation
 
 ---
 
@@ -20,8 +20,8 @@ Successfully implemented a comprehensive professional development environment fo
 
 **Single Source of Truth: `pyproject.toml`**
 - All dependencies centrally managed in `pyproject.toml`
-- Organized extras: `cpu`, `cuda`, `dev`, `docs`, `profiling`
-- Added new dependencies: `uv`, `pre-commit`, `mkdocs`, `mkdocs-material`, `mkdocstrings`
+- Organized extras: `cpu`, `cuda`, `dev`, `profiling`
+- Added new development dependencies: `uv`, `pre-commit`, `commitizen`
 
 **Automated Requirements Generation**
 - Installed `uv` (fast Python package manager)
@@ -60,8 +60,6 @@ make lint         # Lint code with ruff (replaces flake8)
 make mypy         # Type check with mypy
 make test         # Run tests with ≥70% coverage
 make test-quick   # Run quick tests only (exclude @pytest.mark.slow)
-make docs         # Build MkDocs documentation
-make docs-serve   # Serve docs locally at http://127.0.0.1:8000
 make clean        # Clean build artifacts, caches, coverage reports
 ```
 
@@ -111,7 +109,7 @@ SKIP=mypy git push              # Skip mypy on push
 
 ### File Created: `.github/workflows/ci.yml`
 
-**6 Parallel Jobs + Summary:**
+**5 Parallel Jobs + Summary:**
 
 1. **Format Check**
    - Verifies code is formatted with ruff
@@ -134,11 +132,7 @@ SKIP=mypy git push              # Skip mypy on push
    - Runs `make check-deps`
    - Fails if `requirements*.txt` out of sync with `pyproject.toml`
 
-6. **Documentation Build**
-   - Builds MkDocs with `--strict` mode
-   - Deploys to GitHub Pages on `main` branch push
-
-7. **CI Success** (Summary)
+6. **CI Success** (Summary)
    - Aggregates all job results
    - Single status check for branch protection
 
@@ -152,40 +146,19 @@ SKIP=mypy git push              # Skip mypy on push
 
 ## 5. Documentation System ✅
 
-### Files Created
+Documentation lives entirely inside the repository as Markdown—no static site generation or hosting
+is required. The `docs/` directory is organized by purpose:
 
-**Configuration:**
-- `mkdocs.yml` - MkDocs configuration with Material theme
+- `docs/api/` — Module-level explanations and API notes
+- `docs/guides/` — How-to guides and tutorials (e.g., quickstart, CLI usage, contributing)
+- `docs/reports/` — Experiment and validation summaries
+- `docs/development.md` — Comprehensive developer onboarding
 
-**Documentation Files:**
-- `docs/api/index.md` - API reference overview
-- `docs/api/data.md` - Data module autodocs
-- `docs/api/models.md` - Models module autodocs
-- `docs/api/training.md` - Training module autodocs
-- `docs/api/decoding.md` - Decoding module autodocs
-- `docs/api/eval.md` - Evaluation module autodocs
-- `docs/api/analysis.md` - Analysis module autodocs
-- `docs/development.md` - Comprehensive developer guide
-- `docs/guides/quickstart.md` - Quick start guide
-- `docs/guides/cli_usage.md` - CLI command reference
-- `docs/stylesheets/extra.css` - Custom styles
+### Workflow
 
-### Features
-
-- **Material Theme** - Modern, professional appearance
-- **mkdocstrings** - Automatic API docs from docstrings
-- **Google-style docstrings** - Clean, readable format
-- **Search** - Full-text search with suggestions
-- **Dark mode** - Automatic theme switching
-- **Code highlighting** - Syntax highlighting with copy button
-- **Navigation** - Tabs, sections, back-to-top
-
-### Build & Serve
-
-```bash
-make docs          # Build docs (output: site/)
-make docs-serve    # Serve at http://127.0.0.1:8000
-```
+1. Edit or add Markdown files directly under `docs/`
+2. Link new content from the README or an existing guide so it is discoverable
+3. Commit the Markdown changes—there is no build or deployment step
 
 ---
 
@@ -227,7 +200,6 @@ pytest tests/ -v -m "not slow"
 
 ### Created
 - `.pre-commit-config.yaml` - Pre-commit configuration
-- `mkdocs.yml` - Documentation configuration
 - `.github/workflows/ci.yml` - CI pipeline
 - `requirements-dev.txt` - Development dependencies (generated)
 - `docs/api/*.md` - API documentation pages (7 files)
@@ -251,7 +223,6 @@ All new features have been tested:
 ✅ make sync-deps      # Successfully generated requirements
 ✅ make format         # Formatted 22 files
 ✅ make lint           # Identified linting issues
-✅ make docs           # Built documentation (7.49s)
 ✅ pre-commit install  # Installed hooks successfully
 ```
 
@@ -277,7 +248,6 @@ All new features have been tested:
    make format
    make lint
    make test-quick
-   make docs
    ```
 
 ### For CI/CD
@@ -286,24 +256,13 @@ All new features have been tested:
    - Go to repository Settings → Secrets
    - Add `CODECOV_TOKEN` secret
 
-2. **Enable GitHub Pages:**
-   - Go to repository Settings → Pages
-   - Source: Deploy from a branch
-   - Branch: `gh-pages`, `/root`
-
-3. **Update branch protection:**
+2. **Update branch protection:**
    - Require "CI Success" status check to pass
 
-### Documentation Improvements
+### Documentation Notes
 
-The documentation builds successfully but has some warnings about broken links:
-- Links to `../README.md` from docs files
-- Links to images in `checkpoints/`, `results/`, `ablation_*/`
-
-**Recommended fixes:**
-1. Copy README content to `docs/index.md`
-2. Copy relevant images to `docs/assets/`
-3. Update links in documentation files
+- Documentation is plain Markdown; review links when moving files
+- Keep large assets out of `docs/` to avoid accidental bloat
 
 ---
 
@@ -313,7 +272,7 @@ The documentation builds successfully but has some warnings about broken links:
 - **Files Modified:** 4
 - **Lines of Configuration:** ~800
 - **Makefile Targets Added:** 10
-- **CI Jobs:** 6 + summary
+- **CI Jobs:** 5 + summary
 - **Pre-commit Hooks:** 8 (3 pre-commit, 3 pre-push)
 - **Documentation Pages:** 11
 
@@ -324,7 +283,7 @@ The documentation builds successfully but has some warnings about broken links:
 ### Developer Experience
 - ✨ **Fast feedback** - Pre-commit runs in <2s
 - 🔧 **Auto-fixes** - Format and lint automatically
-- 📝 **Clear docs** - Professional documentation site
+- 📝 **Clear docs** - Versioned Markdown in `docs/`
 - 🎯 **Single commands** - `make format`, `make test`, etc.
 
 ### Code Quality
@@ -335,14 +294,13 @@ The documentation builds successfully but has some warnings about broken links:
 
 ### CI/CD
 - ⚡ **Parallel jobs** - Faster feedback
-- 🚀 **Auto-deploy docs** - GitHub Pages
 - 🎯 **Single status** - One check to rule them all
 - 🔄 **Dependency drift detection** - Never out of sync
 
 ### Maintenance
 - 📦 **Single source of truth** - Only edit pyproject.toml
 - 🔄 **Automated sync** - `make sync-deps`
-- 📚 **Auto-generated docs** - From docstrings
+- 📚 **Lightweight docs** - Markdown lives with the code
 - 🧹 **Easy cleanup** - `make clean`
 
 ---
@@ -351,8 +309,6 @@ The documentation builds successfully but has some warnings about broken links:
 
 - **uv**: https://github.com/astral-sh/uv
 - **ruff**: https://docs.astral.sh/ruff/
-- **MkDocs Material**: https://squidfunk.github.io/mkdocs-material/
-- **mkdocstrings**: https://mkdocstrings.github.io/
 - **pre-commit**: https://pre-commit.com/
 
 ---

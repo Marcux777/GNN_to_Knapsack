@@ -1,8 +1,8 @@
 # Experimental Results - Complete Technical Report
 
-**Last updated:** 2025-10-22
-**Run ID:** run_20251020_104533
-**Model:** PNA-based GNN (~212k parameters, 50 epochs trained)
+**Last updated:** 2025-10-22 (BC Ranker refreshed 2025-10-23)
+**Run ID (baseline):** run_20251020_104533
+**BC Ranker (supervision):** PNA/GCN/GAT, 30 epochs, 8-feature input
 
 ---
 
@@ -167,9 +167,9 @@ Using `make pipeline PIPELINE_STRATEGIES="sampling warm_start" SKIP_TRAIN=1 CHEC
 | **No values** | 98.36% | +98.29% 💥 | 100% | Cannot optimize! |
 | **Random features** | 11.08% | +11.01% | 100% | Model needs real data |
 
-> Produce the feature-ablation plots with `python ablation_study.py --mode features --checkpoint_dir=<run_dir>`; outputs are saved under `ablation_study/outputs/`.
+> Produce the feature-ablation plots with `python ablation_study.py --mode features --checkpoint_dir=<run_dir>`; outputs land in `results/ablations/features/`.
 
-![Feature ablation](../../ablation_study/feature_ablation.png)
+![Feature ablation](../../results/ablations/features/feature_ablation.png)
 
 **Critical Insights:**
 
@@ -204,10 +204,10 @@ Using `make pipeline PIPELINE_STRATEGIES="sampling warm_start" SKIP_TRAIN=1 CHEC
 | **GAT** | 2.61% | 27,777 | 0.182 | 92.28% | 11.9 s |
 | **PNA** | 1.72% | 212,097 | 0.167 | 93.47% | 20.5 s |
 
-> Run `python ablation_study.py --mode architecture --generate_data` to regenerate comparison plots and learning curves (written to `ablation_study/outputs/`).
+> Run `python ablation_study.py --mode architecture --generate_data` to regenerate comparison plots and learning curves (written to `results/ablations/architecture/`).
 
-![Architecture ablation](../../ablation_arch/architecture_ablation.png)
-![Learning curves](../../ablation_arch/learning_curves.png)
+![Architecture ablation](../../results/ablations/architecture/architecture_ablation.png)
+![Learning curves](../../results/ablations/architecture/learning_curves.png)
 
 **Key Findings:**
 
@@ -245,7 +245,8 @@ The pipeline writes artefacts alongside the checkpoint so you can inspect or pub
 **Optional (run on demand):**
 - `python evaluate_ood.py ...` → `<run>/evaluation/ood/` (OOD curves and tables)
 - `python baselines/compare_baselines.py ...` → `<run>/evaluation/baselines/`
-- `python ablation_study.py --mode features|architecture ...` → `ablation_study/outputs/`
+- `python ablation_study.py --mode features` → `results/ablations/features/`
+- `python ablation_study.py --mode architecture` → `results/ablations/architecture/`
 
 All scripts emit 300 DPI figures with consistent styling to streamline inclusion in papers or slide decks.
 
@@ -296,3 +297,34 @@ This implementation is based on:
 - [Implementation Summary](../architecture/implementation_summary.md) - Code details
 - [Execution Guide](../guides/execution_guide.md) - How to reproduce
 - [Main README](../../README.md) - Project overview
+### Supervised “BC Ranker” (behavioral cloning) – 8-feature input
+
+Três arquiteturas supervisionadas (PNA/GCN/GAT) treinadas por 30 épocas em 1000/200/200 instâncias, com perda BCE + hinge de lucro e extração greedy-masked:
+
+| Architecture | Mean Gap | Median Gap | Feasibility | Checkpoint Dir |
+|--------------|----------|------------|-------------|----------------|
+| **PNA** | **0.548%** | **0.157%** | 100% | `checkpoints/bc_ranker_full/pna_*` |
+| **GCN** | 0.539% | 0.170% | 100% | `checkpoints/bc_ranker_full/gcn_*` |
+| **GAT** | 0.514% | 0.156% | 100% | `checkpoints/bc_ranker_full/gat_*` |
+
+Arquiteturas ficaram praticamente empatadas em gap/feasibility; GAT teve ligeira vantagem em média, PNA continua sendo a referência para integrações com pipelines sampling/warm-start. Os resumos vivem em `results/bc_ranker_full/architecture_summary.json`.
+
+### Interpretabilidade V1 (BC Ranker)
+
+Script `scripts/bc_ranker_inspect.py` gera gráficos/sumários para instâncias individuais (scores × seleção, score × densidade, curva cumulativa) e métricas derivadas (Spearman(score, v/w), sensibilidade de capacidade ±5%, distância de Hamming). Artefatos iniciais (instâncias 0/1/2 da base de teste) estão em `results/reports/bc_ranker_v1/`.
+
+Highlights:
+- Spearman(score, v/w) médio ≈ 0.93 (modelos respeitam densidade).
++-5% de capacidade altera no máximo 2 itens (estabilidade boa).
+--relatórios em Markdown (`report.md`) e JSON (`metrics_summary.json`) facilitam inspeção manual.
+
+Reproduzir:
+
+```bash
+PYTHONPATH=src python experiments/bc_ranker.py ... # (como acima)
+PYTHONPATH=src python scripts/bc_ranker_inspect.py \
+  --checkpoint checkpoints/bc_ranker_full/pna_seed13/best_model.pt \
+  --indices 0 1 2 \
+  --output_dir results/reports/bc_ranker_v1 \
+  --device cpu
+```

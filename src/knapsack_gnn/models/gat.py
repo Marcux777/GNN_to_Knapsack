@@ -19,6 +19,8 @@ class HeterogeneousEncoder(nn.Module):
     def __init__(self, item_input_dim: int, constraint_input_dim: int, hidden_dim: int) -> None:
         super().__init__()
 
+        self.hidden_dim = hidden_dim
+
         self.item_encoder = nn.Sequential(
             nn.Linear(item_input_dim, hidden_dim),
             nn.ReLU(),
@@ -38,7 +40,7 @@ class HeterogeneousEncoder(nn.Module):
         item_mask = node_types == 0
         constraint_mask = node_types == 1
 
-        h = torch.zeros(x.size(0), self.item_encoder[0].out_features, device=x.device)
+        h = torch.zeros(x.size(0), self.hidden_dim, device=x.device)
 
         if item_mask.any():
             h[item_mask] = self.item_encoder(x[item_mask, :2])
@@ -162,7 +164,7 @@ class KnapsackGAT(nn.Module):
         item_embeddings = h[item_mask]
 
         # Get probabilities for each item
-        probs = self.decoder(item_embeddings).squeeze(-1)  # [n_items]
+        probs: torch.Tensor = self.decoder(item_embeddings).squeeze(-1)  # [n_items]
 
         return probs
 

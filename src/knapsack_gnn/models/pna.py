@@ -64,6 +64,8 @@ class HeterogeneousEncoder(nn.Module):
         super().__init__()
 
         # Separate MLPs for different node types
+        self.hidden_dim = hidden_dim
+
         self.item_encoder = nn.Sequential(
             nn.Linear(item_input_dim, hidden_dim),
             nn.ReLU(),
@@ -103,7 +105,7 @@ class HeterogeneousEncoder(nn.Module):
         constraint_mask = node_types == 1
 
         # Initialize output tensor
-        h = torch.zeros(x.size(0), self.item_encoder[0].out_features, device=x.device)
+        h = torch.zeros(x.size(0), self.hidden_dim, device=x.device)
 
         # Encode items (first 2 features: weight, value)
         if item_mask.any():
@@ -255,7 +257,7 @@ class KnapsackPNA(nn.Module):
         item_embeddings = h[item_mask]
 
         # Get probabilities for each item
-        probs = self.decoder(item_embeddings).squeeze(-1)  # [n_items]
+        probs: torch.Tensor = self.decoder(item_embeddings).squeeze(-1)  # [n_items]
 
         return probs
 
@@ -336,7 +338,7 @@ class KnapsackPNAWithBatch(KnapsackPNA):
         item_embeddings = h[item_mask]
 
         # Get probabilities for each item
-        probs = self.decoder(item_embeddings).squeeze(-1)
+        probs: torch.Tensor = self.decoder(item_embeddings).squeeze(-1)
 
         return probs
 

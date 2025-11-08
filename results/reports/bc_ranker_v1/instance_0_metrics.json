@@ -1,0 +1,19 @@
+{
+  "index": 0,
+  "spearman_ratio": 0.9399321615787851,
+  "spearman_value": 0.8227567067530065,
+  "spearman_weight": -0.644650015417823,
+  "base_value": 1834.0,
+  "base_weight": 1159.0,
+  "base_gap": 1.1853448275862069,
+  "capacity_minus5": {
+    "value": 1800.0,
+    "weight": 1114.0,
+    "hamming_distance": 1
+  },
+  "capacity_plus5": {
+    "value": 1891.0,
+    "weight": 1245.0,
+    "hamming_distance": 2
+  }
+}

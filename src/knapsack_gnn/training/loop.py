@@ -29,6 +29,7 @@ class KnapsackTrainer:
         weight_decay: float = 1e-6,
         device: str = "cuda" if torch.cuda.is_available() else "cpu",
         checkpoint_dir: str = "checkpoints",
+        profit_loss_weight: float = 0.0,
     ) -> None:
         """
         Args:
@@ -44,6 +45,7 @@ class KnapsackTrainer:
         self.model = model.to(device)
         self.device = device
         self.checkpoint_dir = checkpoint_dir
+        self.profit_loss_weight = profit_loss_weight
         os.makedirs(checkpoint_dir, exist_ok=True)
 
         # Data loaders
@@ -99,6 +101,8 @@ class KnapsackTrainer:
 
             # Compute loss (only on item nodes)
             loss = self.criterion(probs, batch.y)
+            if self.profit_loss_weight > 0:
+                loss = loss + self.profit_loss_weight * self._profit_gap_loss(batch, probs)
 
             # Backward pass
             loss.backward()
@@ -136,6 +140,8 @@ class KnapsackTrainer:
 
                 # Compute loss
                 loss = self.criterion(probs, batch.y)
+                if self.profit_loss_weight > 0:
+                    loss = loss + self.profit_loss_weight * self._profit_gap_loss(batch, probs)
 
                 # Statistics
                 total_loss += loss.item() * len(batch.y)
@@ -207,6 +213,25 @@ class KnapsackTrainer:
         self.save_history()
 
         return self.history
+
+    def _profit_gap_loss(self, batch: Any, probs: torch.Tensor) -> torch.Tensor:
+        """Compute hinge loss on profit gap using predicted probabilities."""
+        if not hasattr(batch, "item_values") or not hasattr(batch, "optimal_value"):
+            return torch.tensor(0.0, device=self.device)
+
+        item_mask = batch.node_types == 0
+        graph_ids = batch.batch[item_mask]
+
+        item_values = batch.item_values
+        per_item_profit = probs * item_values
+
+        pred_profit = torch.zeros(batch.num_graphs, device=self.device)
+        pred_profit.index_add_(0, graph_ids, per_item_profit)
+
+        optimal_values = batch.optimal_value.to(self.device)
+        denom = torch.clamp(optimal_values, min=1e-6)
+        rel_gap = torch.relu((optimal_values - pred_profit) / denom)
+        return rel_gap.mean()
 
     def save_checkpoint(self, filename: str) -> None:
         """Save model checkpoint"""
@@ -295,6 +320,30 @@ class KnapsackTrainer:
             print(f"Training curves saved to {save_path}")
         else:
             plt.show()
+
+
+def greedy_masked_selection(
+    scores: torch.Tensor, weights: torch.Tensor, capacity: float
+) -> torch.Tensor:
+    """
+    Greedy masked selection: sort by score descending and pick items while they fit.
+
+    Args:
+        scores: Predicted scores/probabilities for items.
+        weights: Corresponding item weights.
+        capacity: Remaining capacity.
+    """
+    scores_cpu = scores.detach().cpu()
+    weights_cpu = weights.detach().cpu()
+    order = torch.argsort(scores_cpu, descending=True)
+    remaining = float(capacity)
+    solution = torch.zeros_like(scores_cpu, dtype=torch.int32)
+    for idx in order:
+        weight = float(weights_cpu[idx])
+        if weight <= remaining:
+            solution[idx] = 1
+            remaining -= weight
+    return solution
 
 
 def train_model(

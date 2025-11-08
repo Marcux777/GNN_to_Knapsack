@@ -1,0 +1,35 @@
+{
+  "pna": {
+    "architecture": "pna",
+    "seeds": [
+      13,
+      37,
+      73
+    ],
+    "mean_gap_mean": 0.5484430462826615,
+    "median_gap_mean": 0.1569330033369042,
+    "feasibility_rate_mean": 1.0
+  },
+  "gcn": {
+    "architecture": "gcn",
+    "seeds": [
+      13,
+      37,
+      73
+    ],
+    "mean_gap_mean": 0.5393932413873618,
+    "median_gap_mean": 0.17042862775720372,
+    "feasibility_rate_mean": 1.0
+  },
+  "gat": {
+    "architecture": "gat",
+    "seeds": [
+      13,
+      37,
+      73
+    ],
+    "mean_gap_mean": 0.5135365480821034,
+    "median_gap_mean": 0.15564211760487978,
+    "feasibility_rate_mean": 1.0
+  }
+}

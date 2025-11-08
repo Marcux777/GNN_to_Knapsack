@@ -171,7 +171,7 @@ def main():
     print("STEP 4: Training")
     print("=" * 70)
 
-    model, history = train_model(
+    _, history = train_model(
         model=model,
         train_dataset=train_graph_dataset,
         val_dataset=val_graph_dataset,

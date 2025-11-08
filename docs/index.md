@@ -16,7 +16,6 @@ Scientific validation methodology and framework:
 
 ### Reports (Resultados e Sumários)
 Summaries and results that serve as reference:
-- [Experimental Results](reports/experimental_results.md) - Complete benchmarks, ablation studies, decoder comparisons
 - [Validation Report (2025-10-20)](reports/validation_report_2025-10-20.md) - Complete technical validation report
 - [Executive Summary (PT-BR)](reports/sumario_executivo_pt-br.md) - Sumário executivo em português
 - [Large Instances Report (PT-BR)](reports/relatorio_instancias_grandes_pt-br.md) - Relatório de instâncias grandes

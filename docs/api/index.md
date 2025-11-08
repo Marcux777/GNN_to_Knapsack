@@ -108,4 +108,3 @@ Common types used throughout the library are defined in `knapsack_gnn.types`.
 
 - [User Guide](../guides/execution_guide.md) - Installation and usage instructions
 - [Development Guide](../development.md) - Contributing and development setup
-- [Experimental Results](../reports/experimental_results.md) - Performance benchmarks

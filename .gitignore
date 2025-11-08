@@ -1,4 +1,6 @@
-# Python / build artifacts
+# -----------------------------------------------------------------------------
+# Python build artifacts / packaging outputs
+# -----------------------------------------------------------------------------
 __pycache__/
 *.py[cod]
 *$py.class
@@ -20,65 +22,94 @@ wheels/
 .installed.cfg
 *.egg
 
+# -----------------------------------------------------------------------------
 # Virtual environments
+# -----------------------------------------------------------------------------
+.venv/
 venv/
 env/
 ENV/
-.venv
+pip-wheel-metadata/
 
-# IDEs and editors
+# -----------------------------------------------------------------------------
+# Tool caches, coverage and temporary analysis outputs
+# -----------------------------------------------------------------------------
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.pytest_cache_local/
+.pyre/
+.pytype/
+.tox/
+.nox/
+.cache/
+htmlcov/
+.coverage
+coverage.xml
+
+# -----------------------------------------------------------------------------
+# Editors, OS junk, swap files
+# -----------------------------------------------------------------------------
 .vscode/
 .idea/
 .claude/
+.DS_Store
+Thumbs.db
 *.swp
 *.swo
 *~
 
-# OS files
-.DS_Store
-Thumbs.db
-
-# Logs
+# -----------------------------------------------------------------------------
+# Logs and local-only artifacts
+# -----------------------------------------------------------------------------
 *.log
 logs/
 wandb/
 mlruns/
-.coverage
+tmp/
+temp/
+*.tmp
+artifacts/*
+!artifacts/README.md
 
-# Data and model artifacts (not publication snapshots)
-# Note: Specific important files are versioned via exceptions below
+# -----------------------------------------------------------------------------
+# Data and checkpoints (only curated subsets are versioned)
+# -----------------------------------------------------------------------------
 data/*
 !data/README.md
 
 checkpoints/*
 !checkpoints/.gitkeep
+!checkpoints/README.md
 !checkpoints/ablations/**
 
-# Documentation build artifacts
+# -----------------------------------------------------------------------------
+# Documentation builds / static sites
+# -----------------------------------------------------------------------------
 site/
 
-# PyTorch models (managed by Git LFS)
-# See .gitattributes for LFS configuration
-
-# Temporary results (publishable snapshots go in results/)
-# results/ is versioned - contains publication-ready outputs
-
-# Jupyter Notebooks
+# -----------------------------------------------------------------------------
+# Notebook outputs (keep notebooks out of git history)
+# -----------------------------------------------------------------------------
 .ipynb_checkpoints/
 *.ipynb
 
-# Local configuration files (not for remote repo)
+# -----------------------------------------------------------------------------
+# Local configuration helpers (kept outside git history)
+# -----------------------------------------------------------------------------
 CLAUDE.md
 AGENTS.md
 install.sh
 verify_install.py
 requirements_step2.txt
 
-# === IMPORTANT: What IS versioned ===
+# -----------------------------------------------------------------------------
+# What IS versioned (reference)
+# -----------------------------------------------------------------------------
 # ✅ configs/**/*.yaml - All configuration files
-# ✅ results/**/* - Publication snapshots (PNG, JSON, CSV)
-# ✅ docs/**/* - All documentation and assets
-# ✅ src/**/*.py - All source code
-# ✅ experiments/**/*.py - All experimental scripts
-# ✅ tests/**/*.py - All tests
-# ✅ README.md - Main documentation
+# ✅ results/**/*       - Public/curated experiment outputs
+# ✅ docs/**/*          - Documentation and assets
+# ✅ src/**/*.py        - Library + training code
+# ✅ experiments/**/*.py
+# ✅ tests/**/*.py
+# ✅ README.md (relatório principal)

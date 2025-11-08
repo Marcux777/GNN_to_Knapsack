@@ -24,6 +24,7 @@ Dados/demos:
 - Datasets gerados em `data/datasets/` (não versionados). Use `--data_dir` para customizar.
 - Checkpoints padrão em `checkpoints/run_<timestamp>`; remova ou arquive antes do PR.
 - Resultados oficiais vivem em `results/` com README descrevendo origem.
+- Artefatos temporários (logs, dumps, ensaios rápidos) vão para `artifacts/` — pasta ignorada e com README explicando o uso.
 
 Variáveis e flags:
 - `DEVICE` ou `--device` para escolher cpu/cuda.

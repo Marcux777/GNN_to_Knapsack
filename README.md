@@ -32,6 +32,7 @@ Para manter o repositório alinhado ao fluxo Codex, consolidamos as seguintes ro
 - `make ci-local` executa `ruff format .`, `ruff check .`, `mypy src/knapsack_gnn experiments || true` e `pytest -q --maxfail=1 -k "not slow"` em sequência; use antes de cada PR.
 - `.github/PULL_REQUEST_TEMPLATE.md` e `CONTRIBUTING.md` exigem que contribuidores leiam `.codex/system.md`, usem o template adequado e marquem a checklist de `.codex/eval.md`.
 - `.pre-commit-config.yaml` inclui o hook local `codex-guard` (script `scripts/verify_codex.py`) que bloqueia remoções não autorizadas de `.codex/*`.
+- `.gitignore` reorganizado por categorias (builds, caches, dados, artefatos locais) com uma pasta `artifacts/` dedicada a dumps temporários.
 - **Nov 2025**: `make ci-local` executado com sucesso (fmt/lint/mypy/teste rápido) após ajustes de lint nos scripts utilitários; mantenha esse alvo como verificação mínima pré-PR.
 - **Nov 2025**: `results/bipartite_graphs/` atualizado com `bipartite_0/5/10.png` gerados a partir de `data/datasets/test.pkl` (ver comando abaixo) para auditar a distribuição do grafo item↔capacidade.
 - **Nov 2025**: GitHub Actions (`.github/workflows/ci.yml`) agora bloqueia merges sem `.codex/*` completo ou sem `make ci-local` limpo, reproduzindo automaticamente o passo local no CI.

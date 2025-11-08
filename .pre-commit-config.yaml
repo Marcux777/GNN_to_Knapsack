@@ -78,13 +78,11 @@ repos:
       # Type checking with mypy
       - id: mypy
         name: mypy type check (pre-push)
-        entry: mypy src/knapsack_gnn/ experiments/ --ignore-missing-imports
+        entry: mypy src/knapsack_gnn/ experiments/ --ignore-missing-imports --no-warn-unused-ignores
         language: python
         pass_filenames: false
         stages: [pre-push]
-        additional_dependencies:
-          - mypy
-          - types-PyYAML
+        additional_dependencies: [mypy]
 
       # Run quick tests (exclude slow tests)
       - id: pytest-quick

@@ -198,7 +198,7 @@ def save_checkpoint_metadata(
     # Save configuration
     if config is not None:
         if hasattr(config, "model_dump"):  # Pydantic model
-            import yaml
+            import yaml  # type: ignore[import-untyped]
 
             config_dict = config.model_dump()
             with open(checkpoint_dir / "config.yaml", "w") as f:

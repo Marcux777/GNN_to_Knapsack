@@ -147,6 +147,7 @@ def train_and_evaluate_model(
         weight_decay=args.weight_decay,
         checkpoint_dir=str(run_dir),
         device=args.device,
+        seed=args.seed,
     )
 
     # Reload best weights

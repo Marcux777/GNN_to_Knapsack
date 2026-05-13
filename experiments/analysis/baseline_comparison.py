@@ -16,6 +16,7 @@ import torch
 # Add parent directory to path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from knapsack_gnn.baselines.advanced import FPTASSolver, MeetInTheMiddleSolver
 from knapsack_gnn.baselines.greedy import GreedySolver, RandomSolver
 from knapsack_gnn.data.generator import KnapsackDataset, KnapsackGenerator, KnapsackSolver
 from knapsack_gnn.data.graph_builder import KnapsackGraphDataset
@@ -82,6 +83,32 @@ def parse_args():
     )
 
     parser.add_argument("--seed", type=int, default=999, help="Random seed for reproducibility")
+
+    parser.add_argument(
+        "--baseline",
+        action="append",
+        choices=["greedy", "random", "fptas", "meet"],
+        help="Baseline heuristics to include (repeatable). Default: all baselines.",
+    )
+    parser.add_argument(
+        "--fptas-epsilon",
+        type=float,
+        default=0.05,
+        help="Approximation factor ε for the FPTAS baseline.",
+    )
+    parser.add_argument(
+        "--meet-max-items",
+        type=int,
+        default=32,
+        help="Maximum number of items solved exactly by meet-in-the-middle "
+        "(bigger instances fall back to FPTAS).",
+    )
+    parser.add_argument(
+        "--meet-fallback-epsilon",
+        type=float,
+        default=0.02,
+        help="Fallback ε used by meet-in-the-middle when the instance is large.",
+    )
 
     return parser.parse_args()
 
@@ -266,6 +293,78 @@ def get_ortools_stats(test_dataset) -> dict:
     return stats
 
 
+def summarize_baseline_results(name: str, results: list[dict]) -> dict:
+    """Aggregate stats from solver results."""
+    if not results:
+        raise ValueError(f"No results available for {name}")
+
+    gaps = [r["optimality_gap"] for r in results if r["optimality_gap"] is not None]
+    times = [r["solve_time"] for r in results]
+    feasibility = [r["is_feasible"] for r in results]
+
+    mean_gap = float(np.mean(gaps)) if gaps else float("nan")
+    stats = {
+        "method": name,
+        "mean_gap": mean_gap,
+        "median_gap": float(np.median(gaps)) if gaps else float("nan"),
+        "std_gap": float(np.std(gaps)) if gaps else float("nan"),
+        "max_gap": float(np.max(gaps)) if gaps else float("nan"),
+        "min_gap": float(np.min(gaps)) if gaps else float("nan"),
+        "mean_time": float(np.mean(times)),
+        "median_time": float(np.median(times)),
+        "feasibility_rate": float(np.mean(feasibility)),
+        "throughput": len(results) / np.sum(times) if np.sum(times) > 0 else 0.0,
+        "results": results,
+    }
+    return stats
+
+
+def evaluate_fptas(test_dataset, epsilon: float) -> dict:
+    """Evaluate the FPTAS baseline."""
+    print("\n" + "=" * 70)
+    print(f"EVALUATING FPTAS (ε={epsilon:.3f})")
+    print("=" * 70)
+
+    solver = FPTASSolver(epsilon=epsilon)
+    results = []
+    for i, instance in enumerate(test_dataset.instances):
+        if (i + 1) % 20 == 0:
+            print(f"  Processed {i + 1}/{len(test_dataset)} instances")
+        results.append(solver.solve(instance))
+    stats = summarize_baseline_results(f"FPTAS (ε={epsilon:.3f})", results)
+
+    print("\nFPTAS Results:")
+    print(f"  Mean Gap: {stats['mean_gap']:.2f}%")
+    print(f"  Median Gap: {stats['median_gap']:.2f}%")
+    print(f"  Mean Time: {stats['mean_time'] * 1000:.4f} ms")
+    return stats
+
+
+def evaluate_meet_in_middle(test_dataset, max_items: int, fallback_epsilon: float) -> dict:
+    """Evaluate the meet-in-the-middle baseline."""
+    print("\n" + "=" * 70)
+    print("EVALUATING MEET-IN-THE-MIDDLE SOLVER")
+    print("=" * 70)
+
+    solver = MeetInTheMiddleSolver(
+        max_exact_items=max_items, fallback_epsilon=fallback_epsilon
+    )
+    results = []
+    for i, instance in enumerate(test_dataset.instances):
+        if (i + 1) % 20 == 0:
+            print(f"  Processed {i + 1}/{len(test_dataset)} instances")
+        results.append(solver.solve(instance))
+    stats = summarize_baseline_results(
+        f"Meet-in-the-middle (≤{max_items} items)", results
+    )
+
+    print("\nMeet-in-the-middle Results:")
+    print(f"  Mean Gap: {stats['mean_gap']:.2f}%")
+    print(f"  Median Gap: {stats['median_gap']:.2f}%")
+    print(f"  Mean Time: {stats['mean_time'] * 1000:.4f} ms")
+    return stats
+
+
 def create_comparison_table(all_stats: list[dict]) -> None:
     """Print comparison table"""
     print("\n" + "=" * 70)
@@ -440,12 +539,29 @@ def main():
     all_stats.append(gnn_stats)
 
     # 3. Greedy
-    greedy_stats = evaluate_greedy(test_dataset)
-    all_stats.append(greedy_stats)
+    selected_baselines = args.baseline or ["greedy", "random", "fptas", "meet"]
 
-    # 4. Random
-    random_stats = evaluate_random(test_dataset, max_attempts=args.random_attempts, seed=args.seed)
-    all_stats.append(random_stats)
+    if "greedy" in selected_baselines:
+        greedy_stats = evaluate_greedy(test_dataset)
+        all_stats.append(greedy_stats)
+
+    if "random" in selected_baselines:
+        random_stats = evaluate_random(
+            test_dataset, max_attempts=args.random_attempts, seed=args.seed
+        )
+        all_stats.append(random_stats)
+
+    if "fptas" in selected_baselines:
+        fptas_stats = evaluate_fptas(test_dataset, epsilon=args.fptas_epsilon)
+        all_stats.append(fptas_stats)
+
+    if "meet" in selected_baselines:
+        mitm_stats = evaluate_meet_in_middle(
+            test_dataset,
+            max_items=args.meet_max_items,
+            fallback_epsilon=args.meet_fallback_epsilon,
+        )
+        all_stats.append(mitm_stats)
 
     # ===== Comparison =====
     create_comparison_table(all_stats)

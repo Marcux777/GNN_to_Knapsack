@@ -8,6 +8,9 @@ import time
 import numpy as np
 
 from knapsack_gnn.data.generator import KnapsackInstance
+from knapsack_gnn.utils.logging import get_logger
+
+logger = get_logger(__name__)
 
 
 class GreedySolver:
@@ -93,7 +96,7 @@ class GreedySolver:
         results = []
         for i, instance in enumerate(instances):
             if verbose and (i + 1) % 50 == 0:
-                print(f"Solved {i + 1}/{len(instances)} instances")
+                logger.info("Solved %d/%d instances", i + 1, len(instances))
             result = self.solve(instance)
             results.append(result)
 
@@ -205,45 +208,45 @@ class RandomSolver:
         results = []
         for i, instance in enumerate(instances):
             if verbose and (i + 1) % 50 == 0:
-                print(f"Solved {i + 1}/{len(instances)} instances")
+                logger.info("Solved %d/%d instances", i + 1, len(instances))
             result = self.solve(instance)
             results.append(result)
         return results
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover - manual smoke test
     # Test greedy solver
     from knapsack_gnn.data.generator import KnapsackGenerator, KnapsackSolver
 
-    print("Testing Greedy Solver...")
+    logger.info("Testing Greedy Solver...")
 
     # Generate test instance
     generator = KnapsackGenerator(seed=42)
     instance = generator.generate_instance(n_items=20)
     instance = KnapsackSolver.solve(instance)
 
-    print(f"\nInstance: {instance.n_items} items, capacity={instance.capacity}")
-    print(f"Optimal value: {instance.optimal_value}")
+    logger.info("Instance: %d items, capacity=%s", instance.n_items, instance.capacity)
+    logger.info("Optimal value: %s", instance.optimal_value)
 
     # Solve with greedy
     greedy_solver = GreedySolver()
     result = greedy_solver.solve(instance)
 
-    print("\nGreedy Solution:")
-    print(f"  Value: {result['value']}")
-    print(f"  Optimality gap: {result['optimality_gap']:.2f}%")
-    print(f"  Feasible: {result['is_feasible']}")
-    print(f"  Time: {result['solve_time'] * 1000:.2f} ms")
+    logger.info("Greedy Solution:")
+    logger.info("  Value: %s", result["value"])
+    logger.info("  Optimality gap: %.2f%%", result["optimality_gap"])
+    logger.info("  Feasible: %s", result["is_feasible"])
+    logger.info("  Time: %.2f ms", result["solve_time"] * 1000)
 
     # Solve with random
     random_solver = RandomSolver(seed=42)
     result_random = random_solver.solve(instance)
 
-    print("\nRandom Solution:")
-    print(f"  Value: {result_random['value']}")
-    print(f"  Optimality gap: {result_random['optimality_gap']:.2f}%")
-    print(f"  Feasible: {result_random['is_feasible']}")
-    print(f"  Time: {result_random['solve_time'] * 1000:.2f} ms")
+    logger.info("Random Solution:")
+    logger.info("  Value: %s", result_random["value"])
+    logger.info("  Optimality gap: %.2f%%", result_random["optimality_gap"])
+    logger.info("  Feasible: %s", result_random["is_feasible"])
+    logger.info("  Time: %.2f ms", result_random["solve_time"] * 1000)
 
 
 # Convenience wrapper functions for backward compatibility

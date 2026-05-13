@@ -27,6 +27,7 @@ from knapsack_gnn.decoding.sampling import evaluate_model
 from knapsack_gnn.eval.reporting import save_results_to_json
 from knapsack_gnn.models.pna import create_model
 from knapsack_gnn.training.loop import train_model
+from knapsack_gnn.utils.feature_flags import resolve_graph_feature_kwargs
 
 
 def parse_args():
@@ -54,6 +55,18 @@ def parse_args():
     parser.add_argument("--test_size", type=int, default=200, help="Test set size")
     parser.add_argument("--n_items_min", type=int, default=10, help="Minimum items per instance")
     parser.add_argument("--n_items_max", type=int, default=50, help="Maximum items per instance")
+    parser.add_argument(
+        "--graph_features",
+        type=str,
+        default="none",
+        help="Optional graph features (density,quadratic,bucket,all,none).",
+    )
+    parser.add_argument(
+        "--graph_feature_buckets",
+        type=int,
+        default=4,
+        help="Number of buckets for bucketized ranks (default: 4).",
+    )
 
     # Training parameters
     parser.add_argument("--epochs", type=int, default=50, help="Number of training epochs")
@@ -61,6 +74,13 @@ def parse_args():
     parser.add_argument("--learning_rate", type=float, default=0.002, help="Learning rate")
     parser.add_argument("--hidden_dim", type=int, default=64, help="Hidden dimension")
     parser.add_argument("--num_layers", type=int, default=3, help="Number of GNN layers")
+    parser.add_argument("--dropout", type=float, default=0.1, help="Dropout rate")
+    parser.add_argument(
+        "--profit_loss_weight",
+        type=float,
+        default=0.0,
+        help="Weight for the auxiliary profit gap loss",
+    )
 
     # Evaluation parameters
     parser.add_argument(
@@ -173,6 +193,11 @@ def parse_args():
         "quantize": args.quantize,
     }
 
+    args.graph_feature_kwargs, args.graph_feature_spec = resolve_graph_feature_kwargs(
+        args.graph_features,
+        args.graph_feature_buckets,
+    )
+
     return args
 
 
@@ -237,14 +262,29 @@ def train_with_seed(seed: int, args: argparse.Namespace, shared_data: tuple | No
 
     # Build graph datasets
     print("Building graph datasets...")
-    train_graph_dataset = KnapsackGraphDataset(train_dataset, normalize_features=True)
-    val_graph_dataset = KnapsackGraphDataset(val_dataset, normalize_features=True)
-    test_graph_dataset = KnapsackGraphDataset(test_dataset, normalize_features=True)
+    train_graph_dataset = KnapsackGraphDataset(
+        train_dataset,
+        normalize_features=True,
+        graph_features=args.graph_feature_kwargs,
+    )
+    val_graph_dataset = KnapsackGraphDataset(
+        val_dataset,
+        normalize_features=True,
+        graph_features=args.graph_feature_kwargs,
+    )
+    test_graph_dataset = KnapsackGraphDataset(
+        test_dataset,
+        normalize_features=True,
+        graph_features=args.graph_feature_kwargs,
+    )
 
     # Create model
     print("Creating model...")
     model = create_model(
-        train_graph_dataset, hidden_dim=args.hidden_dim, num_layers=args.num_layers, dropout=0.1
+        train_graph_dataset,
+        hidden_dim=args.hidden_dim,
+        num_layers=args.num_layers,
+        dropout=args.dropout,
     )
     model = model.to(args.device)
 
@@ -270,6 +310,8 @@ def train_with_seed(seed: int, args: argparse.Namespace, shared_data: tuple | No
         learning_rate=args.learning_rate,
         checkpoint_dir=checkpoint_dir,
         device=args.device,
+        seed=seed,
+        profit_loss_weight=args.profit_loss_weight,
     )
 
     training_time = time.time() - train_start

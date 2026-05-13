@@ -30,7 +30,7 @@ def setup_logger(
 
     Example:
         >>> from pathlib import Path
-        >>> from utils.logger import setup_logger
+        >>> from knapsack_gnn.utils.logging import setup_logger
         >>> logger = setup_logger(
         ...     name="training",
         ...     log_file=Path("checkpoints/run_001/training.log"),
@@ -85,7 +85,7 @@ def get_logger(name: str = "knapsack_gnn") -> logging.Logger:
         Logger instance
 
     Example:
-        >>> from utils.logger import get_logger
+        >>> from knapsack_gnn.utils.logging import get_logger
         >>> logger = get_logger(__name__)
         >>> logger.info("Processing instance")
     """

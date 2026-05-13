@@ -14,14 +14,19 @@ from knapsack_gnn.data.generator import KnapsackDataset
 from knapsack_gnn.data.graph_builder import KnapsackGraphDataset
 from knapsack_gnn.decoding.sampling import KnapsackSampler, evaluate_model
 from knapsack_gnn.eval.reporting import (
-    benchmark_time,
     plot_optimality_gaps,
     plot_performance_vs_size,
     plot_solution_comparison,
     print_evaluation_summary,
     save_results_to_json,
 )
+try:  # pragma: no cover - benchmark helper optional
+    from knapsack_gnn.eval.reporting import benchmark_time
+except ImportError:  # pragma: no cover
+    benchmark_time = None
 from knapsack_gnn.models.pna import create_model
+from knapsack_gnn.training.utils import set_seed, validate_seed
+from knapsack_gnn.utils.feature_flags import resolve_graph_feature_kwargs
 
 
 def parse_args():
@@ -151,6 +156,7 @@ def parse_args():
         default=None,
         help="Set torch.set_num_threads for latency-sensitive runs",
     )
+    parser.add_argument("--seed", type=int, default=42, help="Random seed for reproducibility")
     parser.add_argument(
         "--compile", action="store_true", help="Compile model with torch.compile for inference"
     )
@@ -164,6 +170,21 @@ def parse_args():
         type=int,
         default=None,
         help="Number of threads for ILP warm-start solver (default: 1)",
+    )
+    parser.add_argument(
+        "--graph_features",
+        type=str,
+        default="auto",
+        help=(
+            "Graph feature spec to use (density,quadratic,bucket,all,none). "
+            "Use 'auto' to read the checkpoint's config."
+        ),
+    )
+    parser.add_argument(
+        "--graph_feature_buckets",
+        type=int,
+        default=None,
+        help="Number of buckets for bucketized ranks (default: checkpoint config or 4).",
     )
 
     return parser.parse_args()
@@ -220,6 +241,8 @@ def load_model(checkpoint_path, train_dataset, device):
 def main():
     """Main evaluation pipeline"""
     args = parse_args()
+    validate_seed(args.seed)
+    set_seed(args.seed, deterministic=True)
     args.device = resolve_device(args.device)
     args.sampling_schedule = parse_schedule(args.sampling_schedule)
     if args.max_samples is None:
@@ -228,6 +251,11 @@ def main():
     if args.threads is not None:
         torch.set_num_threads(args.threads)
         os.environ.setdefault("OMP_NUM_THREADS", str(args.threads))
+    graph_feature_kwargs, resolved_spec = resolve_graph_feature_kwargs(
+        args.graph_features,
+        args.graph_feature_buckets,
+        checkpoint_dir=args.checkpoint_dir,
+    )
 
     # Set output directory
     if args.output_dir is None:
@@ -252,9 +280,22 @@ def main():
     test_dataset = KnapsackDataset.load(f"{args.data_dir}/test.pkl")
 
     print("\nBuilding graph datasets...")
-    train_graph_dataset = KnapsackGraphDataset(train_dataset, normalize_features=True)
-    val_graph_dataset = KnapsackGraphDataset(val_dataset, normalize_features=True)
-    test_graph_dataset = KnapsackGraphDataset(test_dataset, normalize_features=True)
+    print(f"  Graph feature spec: {resolved_spec}")
+    train_graph_dataset = KnapsackGraphDataset(
+        train_dataset,
+        normalize_features=True,
+        graph_features=graph_feature_kwargs,
+    )
+    val_graph_dataset = KnapsackGraphDataset(
+        val_dataset,
+        normalize_features=True,
+        graph_features=graph_feature_kwargs,
+    )
+    test_graph_dataset = KnapsackGraphDataset(
+        test_dataset,
+        normalize_features=True,
+        graph_features=graph_feature_kwargs,
+    )
 
     # ===== STEP 2: Load Model =====
     print("\n" + "=" * 70)
@@ -346,14 +387,17 @@ def main():
         print("STEP 5: Benchmarking Timing")
         print("=" * 70)
 
-        timing_results = benchmark_time(model, test_graph_dataset, device=args.device)
-        print("\nTiming Results:")
-        print(f"  Mean time: {timing_results['mean_time'] * 1000:.2f} ms")
-        print(f"  Median time: {timing_results['median_time'] * 1000:.2f} ms")
-        print(f"  Throughput: {timing_results['throughput']:.2f} instances/sec")
+        if benchmark_time is None:
+            print("Benchmark helper unavailable in this build; skipping.")
+        else:
+            timing_results = benchmark_time(model, test_graph_dataset, device=args.device)
+            print("\nTiming Results:")
+            print(f"  Mean time: {timing_results['mean_time'] * 1000:.2f} ms")
+            print(f"  Median time: {timing_results['median_time'] * 1000:.2f} ms")
+            print(f"  Throughput: {timing_results['throughput']:.2f} instances/sec")
 
-        timing_path = os.path.join(args.output_dir, "timing_results.json")
-        save_results_to_json(timing_results, timing_path)
+            timing_path = os.path.join(args.output_dir, "timing_results.json")
+            save_results_to_json(timing_results, timing_path)
 
     # ===== STEP 6: Visualizations (optional) =====
     if args.visualize:

@@ -3,6 +3,7 @@ Graph Builder for Knapsack Problem
 Converts Knapsack instances into tripartite graphs for GNN processing
 """
 
+import os
 from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
@@ -10,10 +11,15 @@ import torch
 from numpy.typing import NDArray
 from torch_geometric.data import Data, Dataset
 
+from knapsack_gnn.utils.logging import get_logger
+from knapsack_gnn.utils.feature_flags import parse_graph_feature_spec
+
 from .generator import KnapsackDataset, KnapsackInstance
 
 if TYPE_CHECKING:
     from matplotlib.figure import Figure
+
+logger = get_logger(__name__)
 
 
 def _rank_normalize(arr: NDArray[np.float32]) -> NDArray[np.float32]:
@@ -30,6 +36,8 @@ def _rank_normalize(arr: NDArray[np.float32]) -> NDArray[np.float32]:
 
 def _zscore(arr: NDArray[np.float32]) -> NDArray[np.float32]:
     """Return z-score normalized copy with safe std."""
+    if arr.size == 0:
+        return np.zeros_like(arr, dtype=np.float32)
     mean = np.mean(arr)
     std = np.std(arr)
     denom = std if std > 1e-6 else 1.0
@@ -40,12 +48,27 @@ def _zscore(arr: NDArray[np.float32]) -> NDArray[np.float32]:
 class KnapsackGraphBuilder:
     """Converts Knapsack instances to PyTorch Geometric graph format"""
 
-    def __init__(self, normalize_features: bool = True) -> None:
+    def __init__(
+        self,
+        normalize_features: bool = True,
+        enable_density: bool = False,
+        enable_quadratic_ratio: bool = False,
+        enable_bucket_ranks: bool = False,
+        buckets: int = 4,
+    ) -> None:
         """
         Args:
             normalize_features: Whether to normalize node features
+            enable_density: Add capacity density feature (capacity / sum(weights))
+            enable_quadratic_ratio: Add value^2 / weight feature
+            enable_bucket_ranks: Add bucketized ranks (one-hot) based on item values
+            buckets: Number of buckets for bucketized ranks
         """
         self.normalize_features = normalize_features
+        self.enable_density = enable_density
+        self.enable_quadratic_ratio = enable_quadratic_ratio
+        self.enable_bucket_ranks = enable_bucket_ranks
+        self.bucket_count = max(buckets, 1)
 
     def build_graph(self, instance: KnapsackInstance) -> Data:
         """
@@ -75,19 +98,29 @@ class KnapsackGraphBuilder:
         value_z = _zscore(values)
         weight_z = _zscore(weights)
 
-        item_features = np.stack(
-            [
-                weights.copy(),
-                values.copy(),
-                ratio,
-                value_rank,
-                weight_rank,
-                ratio_rank,
-                value_z,
-                weight_z,
-            ],
-            axis=1,
-        ).astype(np.float32)
+        features: list[np.ndarray] = [
+            weights.copy(),
+            values.copy(),
+            ratio,
+            value_rank,
+            weight_rank,
+            ratio_rank,
+            value_z,
+            weight_z,
+        ]
+
+        if self.enable_quadratic_ratio:
+            quad = (values**2) / np.maximum(weights, 1e-6)
+            features.append(quad.astype(np.float32))
+
+        if self.enable_bucket_ranks:
+            quantiles = np.linspace(0, 1, self.bucket_count + 1)
+            bucket_edges = np.quantile(values, quantiles)
+            bucket_indices = np.digitize(values, bucket_edges[1:-1], right=True)
+            bucket_one_hot = np.eye(self.bucket_count, dtype=np.float32)[bucket_indices]
+            features.append(bucket_one_hot.astype(np.float32))
+
+        item_features = np.column_stack(features).astype(np.float32)
 
         # Constraint node features have matching dimensionality
         constraint_features = np.zeros((1, item_features.shape[1]), dtype=np.float32)
@@ -96,23 +129,33 @@ class KnapsackGraphBuilder:
         # Normalize if requested
         if self.normalize_features:
             # Normalize item features by max values
-            max_weight = np.max(weights)
-            max_value = np.max(values)
+            max_weight = float(np.max(weights)) if weights.size else 0.0
+            max_value = float(np.max(values)) if values.size else 0.0
             item_features[:, 0] /= max_weight if max_weight > 0 else 1.0
             item_features[:, 1] /= max_value if max_value > 0 else 1.0
 
-            max_ratio = np.max(ratio)
+            max_ratio = float(np.max(ratio)) if ratio.size else 0.0
             if max_ratio > 0:
                 item_features[:, 2] /= max_ratio
 
             # Normalize constraint by total weight
-            total_weight = np.sum(weights)
+            total_weight = float(np.sum(weights)) if weights.size else 0.0
             norm = total_weight if total_weight > 0 else 1.0
             constraint_features[:, 0] /= norm
+
+        if self.enable_density:
+            total_weight = float(np.sum(weights)) if weights.size else 1.0
+            density = instance.capacity / max(total_weight, 1e-6)
+            density_feature = np.full((item_features.shape[0], 1), density, dtype=np.float32)
+            item_features = np.hstack([item_features, density_feature])
+            constraint_density = np.array([[density]], dtype=np.float32)
+            constraint_features = np.hstack([constraint_features, constraint_density])
 
         # Concatenate all node features
         # Node indices: [0, n_items-1] are item nodes, n_items is constraint node
         x_np = np.vstack([item_features, constraint_features])
+        if not np.isfinite(x_np).all():
+            x_np = np.nan_to_num(x_np, copy=False)
         node_features = torch.tensor(x_np, dtype=torch.float32)
 
         # === Edge Construction ===
@@ -126,7 +169,10 @@ class KnapsackGraphBuilder:
             edge_index_list.append([i, constraint_node_idx])
             edge_index_list.append([constraint_node_idx, i])
 
-        edge_index = torch.tensor(edge_index_list, dtype=torch.long).t().contiguous()
+        if edge_index_list:
+            edge_index = torch.tensor(edge_index_list, dtype=torch.long).t().contiguous()
+        else:
+            edge_index = torch.zeros((2, 0), dtype=torch.long)
 
         # === Node Type Indicators ===
         # 0 = item node, 1 = constraint node
@@ -176,20 +222,32 @@ class KnapsackGraphDataset(Dataset):
     PyTorch Geometric Dataset wrapper for Knapsack graphs
     """
 
-    def __init__(self, knapsack_dataset: KnapsackDataset, normalize_features: bool = True) -> None:
+    def __init__(
+        self,
+        knapsack_dataset: KnapsackDataset,
+        normalize_features: bool = True,
+        graph_features: dict[str, Any] | None = None,
+    ) -> None:
         """
         Args:
             knapsack_dataset: KnapsackDataset containing instances
             normalize_features: Whether to normalize node features
+            graph_features: Optional kwargs forwarded to ``KnapsackGraphBuilder`` to enable
+                extra feature columns (density, quadratic ratio, bucket ranks, etc.)
         """
         super().__init__()
         self.knapsack_dataset = knapsack_dataset
-        self.graph_builder = KnapsackGraphBuilder(normalize_features=normalize_features)
+        builder_kwargs = self._resolve_feature_flags(graph_features)
+        self.graph_builder = KnapsackGraphBuilder(
+            normalize_features=normalize_features,
+            **builder_kwargs,
+        )
+        self.graph_feature_flags = builder_kwargs
 
         # Pre-build all graphs for efficiency
-        print(f"Building {len(knapsack_dataset)} graphs...")
+        logger.info("Building %d graphs from dataset", len(knapsack_dataset))
         self.graphs = self.graph_builder.build_batch(knapsack_dataset.instances)
-        print("Graphs built successfully!")
+        logger.info("Graphs built successfully")
 
     def len(self) -> int:
         return len(self.graphs)
@@ -202,6 +260,31 @@ class KnapsackGraphDataset(Dataset):
 
     def __getitem__(self, idx: int) -> Data:
         return self.graphs[idx]
+
+    @staticmethod
+    def _resolve_feature_flags(graph_features: dict[str, Any] | None) -> dict[str, Any]:
+        if graph_features is not None:
+            return dict(graph_features)
+
+        spec = os.getenv("KNAPSACK_GNN_GRAPH_FEATURES")
+        if not spec:
+            return {}
+
+        bucket_env = os.getenv("KNAPSACK_GNN_GRAPH_FEATURE_BUCKETS")
+        bucket_count: int | None = None
+        if bucket_env:
+            try:
+                bucket_count = int(bucket_env)
+            except ValueError:
+                logger.warning(
+                    "Invalid KNAPSACK_GNN_GRAPH_FEATURE_BUCKETS=%s; falling back to default.",
+                    bucket_env,
+                )
+        try:
+            return parse_graph_feature_spec(spec, bucket_count)
+        except ValueError as exc:
+            logger.error("Failed to parse KNAPSACK_GNN_GRAPH_FEATURES=%s: %s", spec, exc)
+            raise
 
 
 def visualize_graph(data: Data, title: str = "Knapsack Graph") -> "Figure":
@@ -268,37 +351,37 @@ def visualize_graph(data: Data, title: str = "Knapsack Graph") -> "Figure":
     return plt.gcf()
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover - manual smoke test
     # Example usage
     from .knapsack_generator import KnapsackGenerator, KnapsackSolver
 
-    print("Creating sample Knapsack instance...")
+    logger.info("Creating sample Knapsack instance...")
     generator = KnapsackGenerator(seed=42)
     instance = generator.generate_instance(n_items=10)
 
-    print("Solving instance...")
+    logger.info("Solving instance...")
     instance = KnapsackSolver.solve(instance)
 
-    print(f"\nInstance: {instance}")
-    print(f"Optimal value: {instance.optimal_value}")
-    print(f"Solution: {instance.solution}")
+    logger.info("Instance: %s", instance)
+    logger.info("Optimal value: %s", instance.optimal_value)
+    logger.info("Solution: %s", instance.solution)
 
-    print("\nBuilding graph...")
+    logger.info("Building graph...")
     builder = KnapsackGraphBuilder(normalize_features=True)
     graph = builder.build_graph(instance)
 
-    print("\nGraph properties:")
-    print(f"  Number of nodes: {graph.x.shape[0]}")
-    print(f"  Number of edges: {graph.edge_index.shape[1]}")
-    print(f"  Node features shape: {graph.x.shape}")
-    print(f"  Node types: {graph.node_types}")
-    print(f"  Labels (solution): {graph.y}")
+    logger.info("Graph properties:")
+    logger.info("  Number of nodes: %s", graph.x.shape[0])
+    logger.info("  Number of edges: %s", graph.edge_index.shape[1])
+    logger.info("  Node features shape: %s", graph.x.shape)
+    logger.info("  Node types: %s", graph.node_types)
+    logger.info("  Labels (solution): %s", graph.y)
 
     # Visualize
-    print("\nVisualizing graph...")
+    logger.info("Visualizing graph...")
     fig = visualize_graph(graph, title=f"Knapsack Graph (Optimal Value: {instance.optimal_value})")
     fig.savefig("knapsack_graph_example.png", dpi=150, bbox_inches="tight")
-    print("Graph saved to knapsack_graph_example.png")
+    logger.info("Graph saved to knapsack_graph_example.png")
 
 
 # Convenience wrapper function for backward compatibility

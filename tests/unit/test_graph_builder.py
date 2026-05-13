@@ -2,10 +2,13 @@
 Tests for graph construction from knapsack instances.
 """
 
+import numpy as np
+import pytest
 import torch
 from torch_geometric.data import Data
 
-from knapsack_gnn.data.graph_builder import build_bipartite_graph
+from knapsack_gnn.data.generator import KnapsackInstance
+from knapsack_gnn.data.graph_builder import KnapsackGraphBuilder, build_bipartite_graph
 
 
 class TestGraphBuilder:
@@ -152,3 +155,109 @@ class TestGraphBuilder:
         assert not torch.isnan(graph.x).any(), "Node features contain NaN"
         assert not torch.isinf(graph.x).any(), "Node features contain Inf"
         assert (graph.x[:, :2] >= 0).all(), "Value/weight features should be non-negative"
+
+    def test_handles_zero_capacity_instance(self):
+        """Graph builder should tolerate zero capacity without NaNs."""
+        instance = KnapsackInstance(
+            weights=np.array([2.0, 3.0], dtype=np.float32),
+            values=np.array([5.0, 6.0], dtype=np.float32),
+            capacity=0,
+        )
+        builder = KnapsackGraphBuilder(normalize_features=True)
+        graph = builder.build_graph(instance)
+
+        assert torch.isfinite(graph.x).all(), "Features should be finite for zero capacity"
+        assert graph.x.shape[0] == instance.n_items + 1
+
+    def test_handles_zero_weight_items(self):
+        """Weight-zero items should not break normalization."""
+        instance = KnapsackInstance(
+            weights=np.array([0.0, 4.0, 2.0], dtype=np.float32),
+            values=np.array([10.0, 5.0, 3.0], dtype=np.float32),
+            capacity=5,
+        )
+        builder = KnapsackGraphBuilder(normalize_features=True)
+        graph = builder.build_graph(instance)
+
+        assert torch.isfinite(graph.x).all()
+        # Ratio feature (index 2) should remain finite even with zero weight.
+        assert not torch.isnan(graph.x[:, 2]).any()
+
+    def test_handles_empty_instance(self):
+        """Builder should return a single constraint node for empty datasets."""
+        instance = KnapsackInstance(
+            weights=np.array([], dtype=np.float32),
+            values=np.array([], dtype=np.float32),
+            capacity=0,
+        )
+        builder = KnapsackGraphBuilder(normalize_features=True)
+        graph = builder.build_graph(instance)
+
+        assert graph.x.shape[0] == 1, "Only the constraint node should exist"
+        assert graph.edge_index.shape == (2, 0), "No edges expected for empty graph"
+        assert torch.isfinite(graph.x).all()
+
+    def test_density_feature_appends_column(self, small_knapsack_instance):
+        """Optional density feature should append identical column for items and constraint."""
+        instance = KnapsackInstance(
+            weights=small_knapsack_instance["weights"],
+            values=small_knapsack_instance["values"],
+            capacity=int(small_knapsack_instance["capacity"]),
+        )
+        builder = KnapsackGraphBuilder(normalize_features=False, enable_density=True)
+        graph = builder.build_graph(instance)
+
+        base_dim = 8
+        assert graph.x.shape[1] == base_dim + 1
+
+        total_weight = float(np.sum(instance.weights))
+        expected_density = instance.capacity / total_weight
+        density_column = graph.x[: instance.n_items, -1]
+        assert torch.allclose(
+            density_column,
+            torch.full_like(density_column, expected_density),
+            atol=1e-6,
+        )
+        assert graph.x[instance.n_items, -1].item() == pytest.approx(expected_density)
+
+    def test_quadratic_ratio_feature(self, small_knapsack_instance):
+        """Quadratic ratio adds value^2/weight column."""
+        instance = KnapsackInstance(
+            weights=small_knapsack_instance["weights"],
+            values=small_knapsack_instance["values"],
+            capacity=int(small_knapsack_instance["capacity"]),
+        )
+        builder = KnapsackGraphBuilder(normalize_features=False, enable_quadratic_ratio=True)
+        graph = builder.build_graph(instance)
+
+        base_dim = 8
+        assert graph.x.shape[1] == base_dim + 1
+
+        quad_expected = (instance.values**2) / np.maximum(instance.weights, 1e-6)
+        quad_column = graph.x[: instance.n_items, -1].numpy()
+        np.testing.assert_allclose(quad_column, quad_expected, rtol=1e-6)
+
+    def test_bucket_rank_features(self, small_knapsack_instance):
+        """Bucketized ranks should add one-hot columns whose rows sum to 1."""
+        buckets = 3
+        instance = KnapsackInstance(
+            weights=small_knapsack_instance["weights"],
+            values=small_knapsack_instance["values"],
+            capacity=int(small_knapsack_instance["capacity"]),
+        )
+        builder = KnapsackGraphBuilder(
+            normalize_features=False,
+            enable_bucket_ranks=True,
+            buckets=buckets,
+        )
+        graph = builder.build_graph(instance)
+
+        base_dim = 8
+        assert graph.x.shape[1] == base_dim + buckets
+
+        bucket_block = graph.x[: instance.n_items, -buckets:]
+        row_sums = bucket_block.sum(dim=1)
+        assert torch.allclose(row_sums, torch.ones_like(row_sums))
+        assert torch.all((bucket_block >= 0) & (bucket_block <= 1))
+        constraint_bucket = graph.x[instance.n_items, -buckets:]
+        assert torch.all(constraint_bucket == 0)

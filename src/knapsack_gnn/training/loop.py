@@ -13,6 +13,8 @@ import torch.optim as optim
 from torch_geometric.loader import DataLoader as GeometricDataLoader
 from tqdm import tqdm
 
+from knapsack_gnn.utils.logging import get_logger
+
 
 class KnapsackTrainer:
     """
@@ -30,6 +32,7 @@ class KnapsackTrainer:
         device: str = "cuda" if torch.cuda.is_available() else "cpu",
         checkpoint_dir: str = "checkpoints",
         profit_loss_weight: float = 0.0,
+        run_seed: int | None = None,
     ) -> None:
         """
         Args:
@@ -44,9 +47,20 @@ class KnapsackTrainer:
         """
         self.model = model.to(device)
         self.device = device
+        self.logger = get_logger(__name__)
         self.checkpoint_dir = checkpoint_dir
         self.profit_loss_weight = profit_loss_weight
+        self.seed = run_seed
         os.makedirs(checkpoint_dir, exist_ok=True)
+
+        # Enforce deterministic operations for reproducibility.
+        try:
+            torch.use_deterministic_algorithms(True)
+        except RuntimeError as exc:  # pragma: no cover - depends on backend ops
+            self.logger.warning("Deterministic algorithms not fully supported: %s", exc)
+        if torch.backends.cudnn.is_available():
+            torch.backends.cudnn.deterministic = True
+            torch.backends.cudnn.benchmark = False
 
         # Data loaders
         self.train_loader = GeometricDataLoader(
@@ -165,10 +179,10 @@ class KnapsackTrainer:
         Returns:
             Training history dictionary
         """
-        print(f"Starting training on {self.device}...")
-        print(f"Training samples: {len(self.train_loader.dataset)}")
-        print(f"Validation samples: {len(self.val_loader.dataset)}")
-        print(f"Batch size: {self.train_loader.batch_size}")
+        self.logger.info("Starting training on %s", self.device)
+        self.logger.info("Training samples: %d", len(self.train_loader.dataset))
+        self.logger.info("Validation samples: %d", len(self.val_loader.dataset))
+        self.logger.info("Batch size: %d", self.train_loader.batch_size)
 
         for epoch in range(num_epochs):
             # Train
@@ -192,23 +206,25 @@ class KnapsackTrainer:
 
             # Print progress
             if verbose:
-                print(f"\nEpoch {epoch + 1}/{num_epochs}")
-                print(f"  Train Loss: {train_loss:.4f}, Train Acc: {train_acc:.4f}")
-                print(f"  Val Loss: {val_loss:.4f}, Val Acc: {val_acc:.4f}")
-                print(f"  LR: {current_lr:.6f}")
+                self.logger.info("Epoch %d/%d", epoch + 1, num_epochs)
+                self.logger.info(
+                    "  Train Loss: %.4f | Train Acc: %.4f", train_loss, train_acc
+                )
+                self.logger.info("  Val Loss: %.4f | Val Acc: %.4f", val_loss, val_acc)
+                self.logger.info("  LR: %.6f", current_lr)
 
             # Save best model
             if val_loss < self.best_val_loss:
                 self.best_val_loss = val_loss
                 self.save_checkpoint("best_model.pt")
                 if verbose:
-                    print(f"  → Best model saved (val_loss: {val_loss:.4f})")
+                    self.logger.info("  → Best model saved (val_loss: %.4f)", val_loss)
 
             # Save periodic checkpoint
             if (epoch + 1) % 10 == 0:
                 self.save_checkpoint(f"checkpoint_epoch_{epoch + 1}.pt")
 
-        print("\nTraining completed!")
+        self.logger.info("Training completed!")
         self.save_checkpoint("final_model.pt")
         self.save_history()
 
@@ -242,6 +258,7 @@ class KnapsackTrainer:
             "history": self.history,
             "epochs_trained": self.epochs_trained,
             "best_val_loss": self.best_val_loss,
+            "seed": self.seed,
         }
         filepath = os.path.join(self.checkpoint_dir, filename)
         torch.save(checkpoint, filepath)
@@ -258,16 +275,16 @@ class KnapsackTrainer:
         self.epochs_trained = checkpoint["epochs_trained"]
         self.best_val_loss = checkpoint["best_val_loss"]
 
-        print(f"Checkpoint loaded from {filepath}")
-        print(f"Epochs trained: {self.epochs_trained}")
-        print(f"Best val loss: {self.best_val_loss:.4f}")
+        self.logger.info("Checkpoint loaded from %s", filepath)
+        self.logger.info("Epochs trained: %d", self.epochs_trained)
+        self.logger.info("Best val loss: %.4f", self.best_val_loss)
 
     def save_history(self) -> None:
         """Save training history to JSON"""
         filepath = os.path.join(self.checkpoint_dir, "training_history.json")
         with open(filepath, "w") as f:
             json.dump(self.history, f, indent=2)
-        print(f"Training history saved to {filepath}")
+        self.logger.info("Training history saved to %s", filepath)
 
     def plot_training_curves(self, save_path: str | None = None) -> None:
         """
@@ -317,7 +334,7 @@ class KnapsackTrainer:
 
         if save_path:
             plt.savefig(save_path, dpi=150, bbox_inches="tight")
-            print(f"Training curves saved to {save_path}")
+            self.logger.info("Training curves saved to %s", save_path)
         else:
             plt.show()
 
@@ -354,6 +371,7 @@ def train_model(
     batch_size: int = 32,
     learning_rate: float = 0.002,
     checkpoint_dir: str = "checkpoints",
+    plot_curves: bool = True,
     **kwargs: Any,
 ) -> tuple[nn.Module, dict]:
     """
@@ -367,11 +385,13 @@ def train_model(
         batch_size: Batch size
         learning_rate: Learning rate
         checkpoint_dir: Checkpoint directory
-        **kwargs: Additional trainer arguments
+        **kwargs: Additional trainer arguments (passed to KnapsackTrainer, e.g., seed)
 
     Returns:
         Tuple of (trained_model, history)
     """
+    seed = kwargs.pop("seed", None)
+
     trainer = KnapsackTrainer(
         model=model,
         train_dataset=train_dataset,
@@ -379,16 +399,18 @@ def train_model(
         batch_size=batch_size,
         learning_rate=learning_rate,
         checkpoint_dir=checkpoint_dir,
+        run_seed=seed,
         **kwargs,
     )
 
     history = trainer.train(num_epochs=num_epochs)
-    trainer.plot_training_curves(save_path=f"{checkpoint_dir}/training_curves.png")
+    if plot_curves:
+        trainer.plot_training_curves(save_path=f"{checkpoint_dir}/training_curves.png")
 
     return model, history
 
 
-if __name__ == "__main__":
-    # Example usage
-    print("This module provides training utilities.")
-    print("Use train.py script to train models.")
+if __name__ == "__main__":  # pragma: no cover - manual smoke message
+    module_logger = get_logger(__name__)
+    module_logger.info("This module provides training utilities.")
+    module_logger.info("Use train.py script to train models.")

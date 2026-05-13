@@ -22,6 +22,7 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import Any
 
 import torch
 
@@ -37,6 +38,8 @@ from knapsack_gnn.eval.reporting import (
 )
 from knapsack_gnn.models.pna import create_model
 from knapsack_gnn.training.loop import train_model
+from knapsack_gnn.training.utils import set_seed, validate_seed
+from knapsack_gnn.utils.feature_flags import resolve_graph_feature_kwargs
 
 # Ensure project root is on sys.path for absolute imports when running as a module.
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -115,15 +118,32 @@ def prepare_datasets(
 
 
 def build_graph_datasets(
-    bundle: DatasetBundle, normalize_features: bool = True
+    bundle: DatasetBundle,
+    normalize_features: bool = True,
+    graph_features: dict[str, Any] | None = None,
+    feature_spec: str | None = None,
 ) -> GraphDatasetBundle:
     """
     Build PyG graph datasets. This step is cached inside KnapsackGraphDataset.
     """
     print("\n[DATA] Building graph datasets...")
-    train_graph = KnapsackGraphDataset(bundle.train, normalize_features=normalize_features)
-    val_graph = KnapsackGraphDataset(bundle.val, normalize_features=normalize_features)
-    test_graph = KnapsackGraphDataset(bundle.test, normalize_features=normalize_features)
+    if feature_spec is not None:
+        print(f"[DATA] Graph feature spec: {feature_spec}")
+    train_graph = KnapsackGraphDataset(
+        bundle.train,
+        normalize_features=normalize_features,
+        graph_features=graph_features,
+    )
+    val_graph = KnapsackGraphDataset(
+        bundle.val,
+        normalize_features=normalize_features,
+        graph_features=graph_features,
+    )
+    test_graph = KnapsackGraphDataset(
+        bundle.test,
+        normalize_features=normalize_features,
+        graph_features=graph_features,
+    )
     return GraphDatasetBundle(train=train_graph, val=val_graph, test=test_graph)
 
 
@@ -173,15 +193,19 @@ def run_training(
     learning_rate: float,
     weight_decay: float,
     seed: int,
+    graph_features: dict[str, Any] | None,
+    graph_feature_spec: str,
 ) -> tuple[Path, GraphDatasetBundle]:
     """
     Train the model and return (checkpoint_dir, graph_dataset_bundle).
     """
-    torch.manual_seed(seed)
-    if device.startswith("cuda") and torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
+    set_seed(seed, deterministic=True)
 
-    graph_bundle = build_graph_datasets(datasets)
+    graph_bundle = build_graph_datasets(
+        datasets,
+        graph_features=graph_features,
+        feature_spec=graph_feature_spec,
+    )
     checkpoint_root = ensure_dir(checkpoint_root)
     run_dir = ensure_dir(checkpoint_root / f"run_{datetime.now().strftime('%Y%m%d_%H%M%S')}")
 
@@ -203,6 +227,7 @@ def run_training(
         weight_decay=weight_decay,
         checkpoint_dir=str(run_dir),
         device=device,
+        seed=seed,
     )
 
     # Reload best weights for downstream evaluation
@@ -226,6 +251,8 @@ def run_training(
                 "learning_rate": learning_rate,
                 "weight_decay": weight_decay,
                 "seed": seed,
+                "graph_features": graph_feature_spec,
+                "graph_feature_buckets": (graph_features or {}).get("buckets"),
             },
             fp,
             indent=2,
@@ -416,7 +443,11 @@ def run_full_pipeline(args: argparse.Namespace) -> None:
     if args.skip_train:
         if checkpoint_dir is None:
             raise ValueError("When --skip-train is set you must provide --checkpoint-dir.")
-        graph_bundle = build_graph_datasets(datasets)
+        graph_bundle = build_graph_datasets(
+            datasets,
+            graph_features=args.graph_feature_kwargs,
+            feature_spec=args.graph_feature_spec,
+        )
         model = load_best_model(
             checkpoint_dir=checkpoint_dir,
             graph_bundle=graph_bundle,
@@ -438,6 +469,8 @@ def run_full_pipeline(args: argparse.Namespace) -> None:
             learning_rate=args.learning_rate,
             weight_decay=args.weight_decay,
             seed=args.seed,
+            graph_features=args.graph_feature_kwargs,
+            graph_feature_spec=args.graph_feature_spec,
         )
         model = load_best_model(
             checkpoint_dir=checkpoint_dir,
@@ -505,6 +538,8 @@ def run_train_only(args: argparse.Namespace) -> None:
         learning_rate=args.learning_rate,
         weight_decay=args.weight_decay,
         seed=args.seed,
+        graph_features=args.graph_feature_kwargs,
+        graph_feature_spec=args.graph_feature_spec,
     )
 
 
@@ -522,7 +557,11 @@ def run_evaluate_only(args: argparse.Namespace) -> None:
         n_items_max=args.n_items_max,
         seed=args.seed,
     )
-    graph_bundle = build_graph_datasets(datasets)
+    graph_bundle = build_graph_datasets(
+        datasets,
+        graph_features=args.graph_feature_kwargs,
+        feature_spec=args.graph_feature_spec,
+    )
     model = load_best_model(
         checkpoint_dir=checkpoint_dir,
         graph_bundle=graph_bundle,
@@ -598,6 +637,21 @@ def add_common_arguments(parser: argparse.ArgumentParser) -> None:
     )
     parser.add_argument(
         "--n-items-max", type=int, default=50, help="Maximum number of items per instance."
+    )
+    parser.add_argument(
+        "--graph-features",
+        type=str,
+        default="auto",
+        help=(
+            "Optional feature spec to enable density/quadratic/bucket ranks "
+            "(comma-separated or 'all'/'none'/'auto')."
+        ),
+    )
+    parser.add_argument(
+        "--graph-feature-buckets",
+        type=int,
+        default=None,
+        help="Bucket count when bucketized ranks are enabled (defaults to config or 4).",
     )
 
     # Model/training parameters
@@ -713,6 +767,25 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
+    validate_seed(args.seed)
+    set_seed(args.seed, deterministic=True)
+
+    checkpoint_hint: str | None = None
+    if args.command == "evaluate":
+        checkpoint_hint = args.checkpoint_dir
+    elif args.command == "full" and getattr(args, "skip_train", False):
+        checkpoint_hint = args.checkpoint_dir
+    elif args.command == "train" and getattr(args, "skip_train", False):
+        checkpoint_hint = args.checkpoint_dir
+
+    (
+        args.graph_feature_kwargs,
+        args.graph_feature_spec,
+    ) = resolve_graph_feature_kwargs(
+        getattr(args, "graph_features", "auto"),
+        getattr(args, "graph_feature_buckets", None),
+        checkpoint_dir=checkpoint_hint,
+    )
 
     # Normalise device selection
     device = args.device.lower()

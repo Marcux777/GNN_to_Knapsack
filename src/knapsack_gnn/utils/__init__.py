@@ -1,6 +1,6 @@
 """Utility functions for logging and helpers."""
 
-from knapsack_gnn.utils.logger import (
+from knapsack_gnn.utils.logging import (
     get_logger,
     log_experiment_config,
     log_metrics,

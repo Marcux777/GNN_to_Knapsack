@@ -53,6 +53,7 @@ coverage.xml
 .vscode/
 .idea/
 .claude/
+.serena/
 .DS_Store
 Thumbs.db
 *.swp

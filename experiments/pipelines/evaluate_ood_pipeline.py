@@ -10,11 +10,18 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-from knapsack_gnn.data.generator import KnapsackDataset, KnapsackGenerator, KnapsackSolver
+from knapsack_gnn.data.generator import (
+    KnapsackDataset,
+    KnapsackGenerator,
+    KnapsackInstance,
+    KnapsackSolver,
+)
 from knapsack_gnn.data.graph_builder import KnapsackGraphDataset
 from knapsack_gnn.decoding.sampling import evaluate_model
 from knapsack_gnn.eval.reporting import print_evaluation_summary, save_results_to_json
 from knapsack_gnn.models.pna import create_model
+from knapsack_gnn.training.utils import set_seed, validate_seed
+from knapsack_gnn.utils.feature_flags import resolve_graph_feature_kwargs
 
 
 def parse_args():
@@ -40,14 +47,40 @@ def parse_args():
         "--sizes",
         nargs="+",
         type=int,
-        default=[100, 150, 200],
-        help="OOD problem sizes to test (default: 100 150 200)",
+        default=[100, 150, 200, 250, 300, 400],
+        help="OOD problem sizes to test (default: 100 150 200 250 300 400)",
     )
     parser.add_argument(
         "--n_instances_per_size",
         type=int,
         default=50,
         help="Number of instances per size (default: 50)",
+    )
+    parser.add_argument(
+        "--value_dist",
+        type=str,
+        default="uniform",
+        choices=["uniform", "power"],
+        help="Distribution used to sample item values (default: uniform)",
+    )
+    parser.add_argument(
+        "--weight_dist",
+        type=str,
+        default="uniform",
+        choices=["uniform", "power"],
+        help="Distribution used to sample item weights (default: uniform)",
+    )
+    parser.add_argument(
+        "--value_alpha",
+        type=float,
+        default=2.0,
+        help="Shape parameter for power-law value sampling (default: 2.0)",
+    )
+    parser.add_argument(
+        "--weight_alpha",
+        type=float,
+        default=2.0,
+        help="Shape parameter for power-law weight sampling (default: 2.0)",
     )
     parser.add_argument(
         "--seed", type=int, default=999, help="Random seed for OOD dataset generation"
@@ -136,6 +169,18 @@ def parse_args():
         default=None,
         help="Number of threads for warm-start ILP solver (default: 1)",
     )
+    parser.add_argument(
+        "--graph_features",
+        type=str,
+        default="auto",
+        help="Graph feature spec (density,quadratic,bucket,all,none,auto).",
+    )
+    parser.add_argument(
+        "--graph_feature_buckets",
+        type=int,
+        default=None,
+        help="Bucket count when 'bucket' is enabled (defaults to checkpoint config or 4).",
+    )
 
     return parser.parse_args()
 
@@ -167,8 +212,81 @@ def resolve_device(device: str) -> str:
     return device
 
 
+def sample_from_distribution(
+    rng: np.random.Generator,
+    kind: str,
+    size: int,
+    low: int = 1,
+    high: int = 100,
+    alpha: float = 2.0,
+) -> np.ndarray:
+    """
+    Sample positive integers following the specified distribution.
+
+    Args:
+        rng: NumPy random generator.
+        kind: 'uniform' or 'power'.
+        size: Number of samples.
+        low: Minimum value (inclusive).
+        high: Maximum value (inclusive).
+        alpha: Shape parameter for the power-law distribution.
+    """
+    if kind == "uniform":
+        return rng.integers(low, high + 1, size=size).astype(np.float32)
+
+    if kind == "power":
+        alpha = max(alpha, 1.01)
+        samples = rng.zipf(alpha, size=size)
+        scaled = low + samples - 1
+        return np.clip(scaled, low, high).astype(np.float32)
+
+    raise ValueError(f"Unsupported distribution kind: {kind}")
+
+
+def build_custom_instances(
+    size: int,
+    n_instances: int,
+    seed: int,
+    value_dist: str,
+    weight_dist: str,
+    value_alpha: float,
+    weight_alpha: float,
+    capacity_ratio: float = 0.5,
+) -> list[KnapsackInstance]:
+    """Generate knapsack instances with configurable value/weight distributions."""
+    instances: list[KnapsackInstance] = []
+
+    for offset in range(n_instances):
+        rng = np.random.default_rng(seed + offset)
+        values = sample_from_distribution(
+            rng, value_dist, size, low=5 if value_dist == "power" else 1, high=200, alpha=value_alpha
+        )
+        weights = sample_from_distribution(
+            rng, weight_dist, size, low=2 if weight_dist == "power" else 1, high=120, alpha=weight_alpha
+        )
+
+        total_weight = np.sum(weights)
+        capacity = max(int(total_weight * capacity_ratio), int(weights.max()))
+
+        instance = KnapsackInstance(
+            weights=weights.astype(np.float32),
+            values=values.astype(np.float32),
+            capacity=int(capacity),
+        )
+        instance = KnapsackSolver.solve(instance)
+        instances.append(instance)
+
+    return instances
+
+
 def generate_ood_datasets(
-    sizes: list[int], n_instances: int, seed: int
+    sizes: list[int],
+    n_instances: int,
+    seed: int,
+    value_dist: str,
+    weight_dist: str,
+    value_alpha: float,
+    weight_alpha: float,
 ) -> dict[int, KnapsackDataset]:
     """
     Generate OOD test datasets for different problem sizes
@@ -185,18 +303,30 @@ def generate_ood_datasets(
     print("GENERATING OOD TEST DATASETS")
     print("=" * 70)
 
-    generator = KnapsackGenerator(seed=seed)
     datasets = {}
 
     for size in sizes:
         print(f"\nGenerating {n_instances} instances with {size} items...")
-        instances = generator.generate_dataset(
-            n_instances=n_instances,
-            n_items_range=(size, size),  # Fixed size
-        )
+        use_generator = value_dist == "uniform" and weight_dist == "uniform"
 
-        print("Solving instances with OR-Tools...")
-        instances = KnapsackSolver.solve_batch(instances, verbose=False)
+        if use_generator:
+            generator = KnapsackGenerator(seed=seed + size)
+            instances = generator.generate_dataset(
+                n_instances=n_instances,
+                n_items_range=(size, size),  # Fixed size
+            )
+            print("Solving instances with OR-Tools...")
+            instances = KnapsackSolver.solve_batch(instances, verbose=False)
+        else:
+            instances = build_custom_instances(
+                size=size,
+                n_instances=n_instances,
+                seed=seed + size * 17,
+                value_dist=value_dist,
+                weight_dist=weight_dist,
+                value_alpha=value_alpha,
+                weight_alpha=weight_alpha,
+            )
 
         dataset = KnapsackDataset(instances)
         datasets[size] = dataset
@@ -229,7 +359,11 @@ def evaluate_ood_size(model, dataset: KnapsackDataset, size: int, args) -> dict:
     print(f"{'=' * 70}")
 
     # Build graph dataset
-    graph_dataset = KnapsackGraphDataset(dataset, normalize_features=True)
+    graph_dataset = KnapsackGraphDataset(
+        dataset,
+        normalize_features=True,
+        graph_features=args.graph_feature_kwargs,
+    )
 
     # Evaluate
     strategy_kwargs = {}
@@ -401,6 +535,8 @@ def plot_ood_results(all_results: list[dict], training_size_range: tuple, output
 def main():
     """Main OOD evaluation pipeline"""
     args = parse_args()
+    validate_seed(args.seed)
+    set_seed(args.seed, deterministic=True)
     args.device = resolve_device(args.device)
     args.sampling_schedule = parse_schedule(args.sampling_schedule)
     if args.max_samples is None:
@@ -414,12 +550,11 @@ def main():
         "compile_model": args.compile,
         "quantize": args.quantize,
     }
-
-    # Set random seeds for reproducibility
-    torch.manual_seed(args.seed)
-    np.random.seed(args.seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(args.seed)
+    args.graph_feature_kwargs, args.graph_feature_spec = resolve_graph_feature_kwargs(
+        args.graph_features,
+        args.graph_feature_buckets,
+        checkpoint_dir=args.checkpoint_dir,
+    )
 
     print("=" * 70)
     print("OUT-OF-DISTRIBUTION (OOD) EVALUATION")
@@ -440,7 +575,12 @@ def main():
 
     # Load training dataset for degree histogram
     train_dataset = KnapsackDataset.load(f"{args.data_dir}/train.pkl")
-    train_graph_dataset = KnapsackGraphDataset(train_dataset, normalize_features=True)
+    print(f"\nUsing graph feature spec: {args.graph_feature_spec}")
+    train_graph_dataset = KnapsackGraphDataset(
+        train_dataset,
+        normalize_features=True,
+        graph_features=args.graph_feature_kwargs,
+    )
 
     # Get training size range
     training_sizes = [inst.n_items for inst in train_dataset.instances]
@@ -460,7 +600,15 @@ def main():
         print(f"  Epochs trained: {checkpoint['epochs_trained']}")
 
     # ===== STEP 2: Generate OOD Datasets =====
-    ood_datasets = generate_ood_datasets(args.sizes, args.n_instances_per_size, args.seed)
+    ood_datasets = generate_ood_datasets(
+        sizes=args.sizes,
+        n_instances=args.n_instances_per_size,
+        seed=args.seed,
+        value_dist=args.value_dist,
+        weight_dist=args.weight_dist,
+        value_alpha=args.value_alpha,
+        weight_alpha=args.weight_alpha,
+    )
 
     # ===== STEP 3: Evaluate on Each OOD Size =====
     all_results = []

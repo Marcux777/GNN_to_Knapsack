@@ -10,6 +10,7 @@ from matplotlib.path import Path as MplPath
 
 from knapsack_gnn.data.generator import KnapsackDataset
 from knapsack_gnn.data.graph_builder import KnapsackGraphBuilder, visualize_graph
+from knapsack_gnn.utils.feature_flags import parse_graph_feature_spec
 
 
 def _path_deepcopy(self, memo):
@@ -35,13 +36,26 @@ def parse_args() -> argparse.Namespace:
         "--output_dir", type=str, default="results/bipartite_graphs", help="Directory to save PNGs"
     )
     parser.add_argument("--normalize", action="store_true", help="Use normalized features")
+    parser.add_argument(
+        "--graph_features",
+        type=str,
+        default="none",
+        help="Optional graph features (density,quadratic,bucket,all,none).",
+    )
+    parser.add_argument(
+        "--graph_feature_buckets",
+        type=int,
+        default=4,
+        help="Bucket count for bucketized ranks (default: 4).",
+    )
     return parser.parse_args()
 
 
 def main() -> None:
     args = parse_args()
     dataset = KnapsackDataset.load(args.dataset)
-    builder = KnapsackGraphBuilder(normalize_features=args.normalize)
+    feature_kwargs = parse_graph_feature_spec(args.graph_features, args.graph_feature_buckets)
+    builder = KnapsackGraphBuilder(normalize_features=args.normalize, **feature_kwargs)
     out_dir = Path(args.output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 

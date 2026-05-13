@@ -1,4 +1,5 @@
-FROM python:3.11-slim
+ARG ML_CPU_BASE_IMAGE=local/ml-python311-cpu:bookworm
+FROM ${ML_CPU_BASE_IMAGE}
 
 ENV PIP_NO_CACHE_DIR=1 \
     PYTHONDONTWRITEBYTECODE=1 \

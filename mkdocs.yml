@@ -1,0 +1,29 @@
+site_name: Knapsack GNN
+site_description: Documentation for the Learning-to-Optimize Knapsack project.
+site_author: Marcus Vinicius
+theme:
+  name: mkdocs
+docs_dir: docs
+nav:
+  - Home: index.md
+  - Guides:
+      - Quickstart: guides/quickstart.md
+      - Execution Guide: guides/execution_guide.md
+      - CLI Usage: guides/cli_usage.md
+      - Reproducibility: guides/reproducibility.md
+      - Contributing: guides/contributing.md
+  - Development: development.md
+  - API Reference:
+      - Overview: api/index.md
+      - Data: api/data.md
+      - Decoding: api/decoding.md
+      - Training: api/training.md
+      - Models: api/models.md
+      - Evaluation: api/eval.md
+      - Analysis: api/analysis.md
+  - Architecture: architecture/implementation_summary.md
+  - Validation: validation/validation_framework.md
+  - Checklists: checklists/reproducibility_checklist.md
+  - Reports:
+      - Experimental Summary: reports/experimental_results_summary.md
+      - Validation Report: reports/validation_report_2025-10-20.md

@@ -9,6 +9,9 @@ import time
 from typing import Any
 
 import numpy as np
+from knapsack_gnn.utils.logging import get_logger
+
+logger = get_logger(__name__)
 
 knapsack_solver: Any | None
 try:
@@ -178,7 +181,7 @@ class KnapsackSolver:
         solved = []
         for i, instance in enumerate(instances):
             if verbose and (i + 1) % 10 == 0:
-                print(f"Solved {i + 1}/{len(instances)} instances")
+                logger.info("Solved %d/%d instances", i + 1, len(instances))
             solved.append(KnapsackSolver.solve(instance, time_limit))
         return solved
 
@@ -200,7 +203,7 @@ class KnapsackDataset:
         os.makedirs(os.path.dirname(filepath), exist_ok=True)
         with open(filepath, "wb") as f:
             pickle.dump(self.instances, f)
-        print(f"Dataset saved to {filepath}")
+        logger.info("Dataset saved to %s", filepath)
 
     @staticmethod
     def load(filepath: str) -> "KnapsackDataset":
@@ -210,7 +213,7 @@ class KnapsackDataset:
         for inst in instances:
             if not hasattr(inst, "solve_time"):
                 inst.solve_time = None
-        print(f"Dataset loaded from {filepath} ({len(instances)} instances)")
+        logger.info("Dataset loaded from %s (%d instances)", filepath, len(instances))
         return KnapsackDataset(instances)
 
     def get_statistics(self) -> dict:
@@ -263,28 +266,28 @@ def create_datasets(
     Returns:
         Tuple of (train_dataset, val_dataset, test_dataset)
     """
-    print("Generating datasets...")
+    logger.info("Generating datasets...")
 
     # Generate instances
     generator = KnapsackGenerator(seed=seed)
 
-    print(f"Generating {train_size} training instances...")
+    logger.info("Generating %d training instances...", train_size)
     train_instances = generator.generate_dataset(train_size, n_items_range)
 
-    print(f"Generating {val_size} validation instances...")
+    logger.info("Generating %d validation instances...", val_size)
     val_instances = generator.generate_dataset(val_size, n_items_range)
 
-    print(f"Generating {test_size} test instances...")
+    logger.info("Generating %d test instances...", test_size)
     test_instances = generator.generate_dataset(test_size, n_items_range)
 
     # Solve all instances
-    print("\nSolving training instances...")
+    logger.info("Solving training instances...")
     train_instances = KnapsackSolver.solve_batch(train_instances)
 
-    print("Solving validation instances...")
+    logger.info("Solving validation instances...")
     val_instances = KnapsackSolver.solve_batch(val_instances)
 
-    print("Solving test instances...")
+    logger.info("Solving test instances...")
     test_instances = KnapsackSolver.solve_batch(test_instances)
 
     # Create datasets
@@ -299,10 +302,10 @@ def create_datasets(
     test_dataset.save(f"{output_dir}/test.pkl")
 
     # Print statistics
-    print("\n=== Dataset Statistics ===")
-    print("Train:", train_dataset.get_statistics())
-    print("Val:", val_dataset.get_statistics())
-    print("Test:", test_dataset.get_statistics())
+    logger.info("=== Dataset Statistics ===")
+    logger.info("Train: %s", train_dataset.get_statistics())
+    logger.info("Val: %s", val_dataset.get_statistics())
+    logger.info("Test: %s", test_dataset.get_statistics())
 
     return train_dataset, val_dataset, test_dataset
 
@@ -428,9 +431,9 @@ def _dynamic_programming_solve(instance: KnapsackInstance) -> tuple[np.ndarray, 
     return solution, optimal_value
 
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover - manual smoke message
     # Example usage
-    print("Creating Knapsack datasets...")
+    logger.info("Creating Knapsack datasets...")
     train_ds, val_ds, test_ds = create_datasets(
         train_size=100,  # Small dataset for testing
         val_size=20,
@@ -438,4 +441,4 @@ if __name__ == "__main__":
         n_items_range=(10, 30),
         seed=42,
     )
-    print("\nDatasets created successfully!")
+    logger.info("Datasets created successfully!")

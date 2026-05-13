@@ -31,6 +31,7 @@ from knapsack_gnn.data.graph_builder import KnapsackGraphDataset
 from knapsack_gnn.decoding.sampling import evaluate_model
 from knapsack_gnn.models.pna import create_model
 from knapsack_gnn.training.loop import train_model
+from knapsack_gnn.utils.feature_flags import resolve_graph_feature_kwargs
 
 
 def parse_args() -> argparse.Namespace:
@@ -43,6 +44,18 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--data_dir", type=str, default="data/datasets", help="Directory containing datasets"
+    )
+    parser.add_argument(
+        "--graph_features",
+        type=str,
+        default="auto",
+        help="Graph feature spec (density,quadratic,bucket,all,none,auto).",
+    )
+    parser.add_argument(
+        "--graph_feature_buckets",
+        type=int,
+        default=None,
+        help="Bucket count when bucketized ranks are enabled (default: config or 4).",
     )
 
     # Validation parameters
@@ -96,7 +109,13 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def load_model_and_data(checkpoint_path: str, data_dir: str, device: str) -> tuple:
+def load_model_and_data(
+    checkpoint_path: str,
+    data_dir: str,
+    device: str,
+    graph_features: dict[str, Any],
+    feature_spec: str,
+) -> tuple:
     """Load trained model and datasets"""
     print("\n" + "=" * 70)
     print("LOADING MODEL AND DATA")
@@ -114,9 +133,16 @@ def load_model_and_data(checkpoint_path: str, data_dir: str, device: str) -> tup
 
     # Build graph datasets
     print("\nBuilding graph datasets...")
-    train_graph_dataset = KnapsackGraphDataset(train_dataset, normalize_features=True)
-    val_graph_dataset = KnapsackGraphDataset(val_dataset, normalize_features=True)
-    test_graph_dataset = KnapsackGraphDataset(test_dataset, normalize_features=True)
+    print(f"  Graph feature spec: {feature_spec}")
+    train_graph_dataset = KnapsackGraphDataset(
+        train_dataset, normalize_features=True, graph_features=graph_features
+    )
+    val_graph_dataset = KnapsackGraphDataset(
+        val_dataset, normalize_features=True, graph_features=graph_features
+    )
+    test_graph_dataset = KnapsackGraphDataset(
+        test_dataset, normalize_features=True, graph_features=graph_features
+    )
 
     # Load model
     print(f"\nLoading model from {checkpoint_path}...")
@@ -181,6 +207,12 @@ def main() -> None:
     for arg, value in vars(args).items():
         print(f"  {arg}: {value}")
 
+    graph_feature_kwargs, graph_feature_spec = resolve_graph_feature_kwargs(
+        args.graph_features,
+        args.graph_feature_buckets,
+        checkpoint_dir=args.checkpoint,
+    )
+
     # Create output directory
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -202,7 +234,13 @@ def main() -> None:
         train_graph_dataset,
         val_graph_dataset,
         test_graph_dataset,
-    ) = load_model_and_data(args.checkpoint, args.data_dir, args.device)
+    ) = load_model_and_data(
+        args.checkpoint,
+        args.data_dir,
+        args.device,
+        graph_features=graph_feature_kwargs,
+        feature_spec=graph_feature_spec,
+    )
 
     # ===== STEP 1: Evaluate GNN =====
     gnn_gaps = evaluate_gnn(model, test_graph_dataset, args.strategy, args.n_samples, args.device)
@@ -243,6 +281,7 @@ def main() -> None:
                 learning_rate=config.get("lr", 0.002),
                 device=device,
                 checkpoint_dir=None,  # Don't save intermediate checkpoints
+                seed=args.seed,
             )
 
             return trained_model, history

@@ -16,6 +16,9 @@ from torch_geometric.data import Data
 
 from knapsack_gnn.decoding.repair import SolutionRepairer
 from knapsack_gnn.solvers.cp_sat import solve_knapsack_warm_start
+from knapsack_gnn.utils.logging import get_logger
+
+logger = get_logger(__name__)
 
 try:
     from scipy import stats as scipy_stats
@@ -480,11 +483,11 @@ class KnapsackSampler:
 
             if max_samples is not None:
                 remaining = max_samples - total_samples
-                print(f"remaining: {remaining}")
+                logger.debug("Remaining samples before cap: %s", remaining)
                 if remaining <= 0:
                     break
                 batch_size = min(batch_size, remaining)
-                print(f"batch_size: {batch_size}")
+                logger.debug("Adjusted batch size to respect cap: %s", batch_size)
 
             sols, vals, feas_mask, weights = self.sample_solutions(
                 probs=probs, data=data, n_samples=batch_size, temperature=temperature
@@ -1008,7 +1011,7 @@ def evaluate_model(
         "ilp_statuses": [],
     }
 
-    print(f"Evaluating on {len(dataset)} instances using {strategy} strategy...")
+    logger.info("Evaluating %d instances using '%s' strategy", len(dataset), strategy)
 
     for i, data in enumerate(dataset):
         start_time = time.perf_counter()
@@ -1051,7 +1054,7 @@ def evaluate_model(
             results["ilp_statuses"].append(result["ilp_status"])
 
         if (i + 1) % 50 == 0:
-            print(f"  Processed {i + 1}/{len(dataset)}")
+            logger.info("Processed %d/%d instances", i + 1, len(dataset))
 
     # Compute statistics
     if results["gaps"]:
@@ -1201,48 +1204,52 @@ def evaluate_model(
 
     results["feasibility_rate"] = results["feasible_count"] / results["total_count"]
 
-    print("\n=== Evaluation Results ===")
-    print(f"Feasibility Rate: {results['feasibility_rate'] * 100:.2f}%")
+    logger.info("=== Evaluation Results ===")
+    logger.info("Feasibility Rate: %.2f%%", results["feasibility_rate"] * 100)
     if results["mean_gap"] is not None:
-        print(f"Mean Optimality Gap: {results['mean_gap']:.2f}%")
-        print(f"Median Optimality Gap: {results['median_gap']:.2f}%")
-        print(f"Std Optimality Gap: {results['std_gap']:.2f}%")
-        print(f"Max Optimality Gap: {results['max_gap']:.2f}%")
+        logger.info("Mean Optimality Gap: %.2f%%", results["mean_gap"])
+        logger.info("Median Optimality Gap: %.2f%%", results["median_gap"])
+        logger.info("Std Optimality Gap: %.2f%%", results["std_gap"])
+        logger.info("Max Optimality Gap: %.2f%%", results["max_gap"])
         if results["gap_mean_ci_95"]:
             ci_low, ci_high = results["gap_mean_ci_95"]
-            print(f"95% CI (Mean Gap): [{ci_low:.2f}%, {ci_high:.2f}%]")
+            logger.info("95%% CI (Mean Gap): [%.2f%%, %.2f%%]", ci_low, ci_high)
         if results["gap_p_value"] is not None:
-            print(f"T-test vs 0 Gap: t={results['gap_t_stat']:.3f}, p={results['gap_p_value']:.4f}")
+            logger.info(
+                "T-test vs 0 Gap: t=%.3f, p=%.4f",
+                results["gap_t_stat"],
+                results["gap_p_value"],
+            )
 
     if results["mean_approx_ratio"] is not None:
-        print("\nApproximation Ratio:")
-        print(f"  Mean:   {results['mean_approx_ratio']:.4f}")
-        print(f"  Median: {results['median_approx_ratio']:.4f}")
-        print(f"  Min:    {results['min_approx_ratio']:.4f}")
-        print(f"  Max:    {results['max_approx_ratio']:.4f}")
+        logger.info("Approximation Ratio:")
+        logger.info("  Mean:   %.4f", results["mean_approx_ratio"])
+        logger.info("  Median: %.4f", results["median_approx_ratio"])
+        logger.info("  Min:    %.4f", results["min_approx_ratio"])
+        logger.info("  Max:    %.4f", results["max_approx_ratio"])
 
     if results["mean_inference_time"] is not None:
-        print("\nInference Timing:")
-        print(f"  Mean:   {results['mean_inference_time'] * 1000:.2f} ms")
-        print(f"  Median: {results['median_inference_time'] * 1000:.2f} ms")
-        print(f"  P90:    {results['p90_inference_time'] * 1000:.2f} ms")
-        print(f"  P99:    {results['p99_inference_time'] * 1000:.2f} ms")
+        logger.info("Inference Timing:")
+        logger.info("  Mean:   %.2f ms", results["mean_inference_time"] * 1000)
+        logger.info("  Median: %.2f ms", results["median_inference_time"] * 1000)
+        logger.info("  P90:    %.2f ms", results["p90_inference_time"] * 1000)
+        logger.info("  P99:    %.2f ms", results["p99_inference_time"] * 1000)
         if results["throughput"] is not None:
-            print(f"  Throughput: {results['throughput']:.2f} inst/s")
+            logger.info("  Throughput: %.2f inst/s", results["throughput"])
         else:
-            print("  Throughput: N/A")
+            logger.info("  Throughput: N/A")
 
     if results["mean_solver_time"] is not None:
-        print("\nExact Solver Timing:")
-        print(f"  Mean:   {results['mean_solver_time'] * 1000:.2f} ms")
-        print(f"  Median: {results['median_solver_time'] * 1000:.2f} ms")
+        logger.info("Exact Solver Timing:")
+        logger.info("  Mean:   %.2f ms", results["mean_solver_time"] * 1000)
+        logger.info("  Median: %.2f ms", results["median_solver_time"] * 1000)
 
     if results["mean_speedup"] is not None:
-        print("\nSpeedup vs Exact Solver:")
-        print(f"  Mean:   {results['mean_speedup']:.2f}x")
-        print(f"  Median: {results['median_speedup']:.2f}x")
-        print(f"  Min:    {results['min_speedup']:.2f}x")
-        print(f"  Max:    {results['max_speedup']:.2f}x")
+        logger.info("Speedup vs Exact Solver:")
+        logger.info("  Mean:   %.2fx", results["mean_speedup"])
+        logger.info("  Median: %.2fx", results["median_speedup"])
+        logger.info("  Min:    %.2fx", results["min_speedup"])
+        logger.info("  Max:    %.2fx", results["max_speedup"])
 
     if results["samples_used"]:
         samples_array = np.array(results["samples_used"], dtype=np.float64)
@@ -1253,23 +1260,23 @@ def evaluate_model(
         results["median_samples_used"] = None
 
     if results["mean_samples_used"] is not None:
-        print("\nSampling Stats:")
-        print(f"  Mean samples used: {results['mean_samples_used']:.2f}")
-        print(f"  Median samples used: {results['median_samples_used']:.2f}")
+        logger.info("Sampling Stats:")
+        logger.info("  Mean samples used: %.2f", results["mean_samples_used"])
+        logger.info("  Median samples used: %.2f", results["median_samples_used"])
 
     if results["mean_ilp_time"] is not None:
-        print("\nWarm-Start ILP Timing:")
-        print(f"  Mean:   {results['mean_ilp_time'] * 1000:.2f} ms")
-        print(f"  Median: {results['median_ilp_time'] * 1000:.2f} ms")
-        print(f"  P90:    {results['p90_ilp_time'] * 1000:.2f} ms")
-        print(f"  P99:    {results['p99_ilp_time'] * 1000:.2f} ms")
+        logger.info("Warm-Start ILP Timing:")
+        logger.info("  Mean:   %.2f ms", results["mean_ilp_time"] * 1000)
+        logger.info("  Median: %.2f ms", results["median_ilp_time"] * 1000)
+        logger.info("  P90:    %.2f ms", results["p90_ilp_time"] * 1000)
+        logger.info("  P99:    %.2f ms", results["p99_ilp_time"] * 1000)
     if results["ilp_status_counts"]:
         success_rate = results["ilp_success_rate"]
         if success_rate is not None:
-            print(f"  ILP success rate: {success_rate * 100:.2f}%")
+            logger.info("  ILP success rate: %.2f%%", success_rate * 100)
         else:
-            print("  ILP success rate: N/A")
-        print(f"  Status counts: {results['ilp_status_counts']}")
+            logger.info("  ILP success rate: N/A")
+        logger.info("  Status counts: %s", results["ilp_status_counts"])
 
     return results
 
@@ -1348,6 +1355,6 @@ def vectorized_sampling(
         return samples_np[best_idx], sample_values[best_idx], False
 
 
-if __name__ == "__main__":
-    print("This module provides inference utilities.")
-    print("Use evaluate.py script to evaluate models.")
+if __name__ == "__main__":  # pragma: no cover - manual smoke message
+    logger.info("This module provides inference utilities.")
+    logger.info("Use evaluate.py script to evaluate models.")

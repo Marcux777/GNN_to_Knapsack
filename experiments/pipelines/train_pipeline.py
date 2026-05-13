@@ -6,6 +6,7 @@ Complete pipeline for training PNA-based GNN on Knapsack problem
 import argparse
 import os
 from datetime import datetime
+from pathlib import Path
 
 import torch
 
@@ -15,6 +16,8 @@ from knapsack_gnn.data.graph_builder import KnapsackGraphDataset
 from knapsack_gnn.models.pna import create_model
 from knapsack_gnn.training.loop import train_model
 from knapsack_gnn.training.utils import set_seed, validate_seed
+from knapsack_gnn.utils.feature_flags import resolve_graph_feature_kwargs
+from knapsack_gnn.utils.checkpoint import compute_file_hash, save_checkpoint_metadata
 
 
 def parse_args():
@@ -60,6 +63,12 @@ def parse_args():
     parser.add_argument(
         "--weight_decay", type=float, default=1e-6, help="Weight decay (default: 1e-6)"
     )
+    parser.add_argument(
+        "--profit_loss_weight",
+        type=float,
+        default=0.0,
+        help="Weight for the profit gap auxiliary loss (default: 0.0)",
+    )
 
     # Other parameters
     parser.add_argument(
@@ -79,8 +88,33 @@ def parse_args():
         action="store_true",
         help="Generate new datasets (otherwise load existing)",
     )
+    parser.add_argument(
+        "--graph_features",
+        type=str,
+        default="none",
+        help=(
+            "Comma-separated optional features to append (density,quadratic,bucket,all,none). "
+            "Use 'all' to enable every experimental feature."
+        ),
+    )
+    parser.add_argument(
+        "--graph_feature_buckets",
+        type=int,
+        default=4,
+        help="Number of buckets when bucketized ranks are enabled (default: 4).",
+    )
 
     return parser.parse_args()
+
+
+def _dataset_file_hashes(data_dir: str) -> dict[str, str | None]:
+    """Compute SHA256 hashes for serialized dataset splits."""
+    base = Path(data_dir)
+    hashes: dict[str, str | None] = {}
+    for split in ("train", "val", "test"):
+        path = base / f"{split}.pkl"
+        hashes[split] = compute_file_hash(path) if path.exists() else None
+    return hashes
 
 
 def main():
@@ -90,6 +124,10 @@ def main():
     # Validate and set random seeds for reproducibility
     validate_seed(args.seed)
     set_seed(args.seed, deterministic=True)
+    graph_feature_kwargs, resolved_spec = resolve_graph_feature_kwargs(
+        args.graph_features,
+        args.graph_feature_buckets,
+    )
 
     # Create checkpoint directory with timestamp
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -130,14 +168,29 @@ def main():
         print("Val:", val_dataset.get_statistics())
         print("Test:", test_dataset.get_statistics())
 
+    dataset_hashes = _dataset_file_hashes(args.data_dir)
+
     # ===== STEP 2: Build Graphs =====
     print("\n" + "=" * 70)
     print("STEP 2: Building Graphs")
     print("=" * 70)
 
-    train_graph_dataset = KnapsackGraphDataset(train_dataset, normalize_features=True)
-    val_graph_dataset = KnapsackGraphDataset(val_dataset, normalize_features=True)
-    test_graph_dataset = KnapsackGraphDataset(test_dataset, normalize_features=True)
+    print(f"\nGraph feature spec: {resolved_spec}")
+    train_graph_dataset = KnapsackGraphDataset(
+        train_dataset,
+        normalize_features=True,
+        graph_features=graph_feature_kwargs,
+    )
+    val_graph_dataset = KnapsackGraphDataset(
+        val_dataset,
+        normalize_features=True,
+        graph_features=graph_feature_kwargs,
+    )
+    test_graph_dataset = KnapsackGraphDataset(
+        test_dataset,
+        normalize_features=True,
+        graph_features=graph_feature_kwargs,
+    )
 
     print("\nGraph datasets created:")
     print(f"  Train: {len(train_graph_dataset)} graphs")
@@ -181,6 +234,8 @@ def main():
         weight_decay=args.weight_decay,
         checkpoint_dir=checkpoint_dir,
         device=args.device,
+        seed=args.seed,
+        profit_loss_weight=args.profit_loss_weight,
     )
 
     # ===== STEP 5: Save Final Results =====
@@ -194,6 +249,22 @@ def main():
         for arg, value in vars(args).items():
             f.write(f"{arg}: {value}\n")
     print(f"\nConfiguration saved to {config_path}")
+
+    metadata_extra = {
+        "dataset_hashes": dataset_hashes,
+        "dataset_sizes": {
+            "train": len(train_dataset),
+            "val": len(val_dataset),
+            "test": len(test_dataset),
+        },
+    }
+    save_checkpoint_metadata(
+        checkpoint_dir=Path(checkpoint_dir),
+        config=vars(args),
+        seed=args.seed,
+        deterministic=True,
+        additional_info=metadata_extra,
+    )
 
     # Print final statistics
     print("\n" + "=" * 70)

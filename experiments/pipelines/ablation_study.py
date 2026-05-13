@@ -21,6 +21,7 @@ from knapsack_gnn.models.gat import create_gat_model
 from knapsack_gnn.models.gcn import create_gcn_model
 from knapsack_gnn.models.pna import create_model as create_pna_model
 from knapsack_gnn.training.loop import train_model
+from knapsack_gnn.utils.feature_flags import resolve_graph_feature_kwargs
 
 
 def parse_schedule(schedule_str: str | None) -> tuple[int, ...] | None:
@@ -72,6 +73,18 @@ def parse_args():
     parser.add_argument("--n_items_min", type=int, default=10, help="Minimum items per instance")
     parser.add_argument("--n_items_max", type=int, default=50, help="Maximum items per instance")
     parser.add_argument("--generate_data", action="store_true", help="Generate new datasets")
+    parser.add_argument(
+        "--graph_features",
+        type=str,
+        default="auto",
+        help="Graph feature spec (density,quadratic,bucket,all,none,auto).",
+    )
+    parser.add_argument(
+        "--graph_feature_buckets",
+        type=int,
+        default=None,
+        help="Bucket count when bucketized ranks are enabled (default: config or 4).",
+    )
 
     # Training parameters (for architecture ablation)
     parser.add_argument("--epochs", type=int, default=50, help="Number of training epochs")
@@ -190,6 +203,13 @@ def parse_args():
         "quantize": args.quantize,
     }
 
+    checkpoint_hint = args.checkpoint_dir if args.mode in ("features", "both") else None
+    args.graph_feature_kwargs, args.graph_feature_spec = resolve_graph_feature_kwargs(
+        args.graph_features,
+        args.graph_feature_buckets,
+        checkpoint_dir=checkpoint_hint,
+    )
+
     return args
 
 
@@ -255,9 +275,22 @@ def architecture_ablation(args) -> dict:
 
     # Build graph datasets
     print("Building graph datasets...")
-    train_graph_dataset = KnapsackGraphDataset(train_dataset, normalize_features=True)
-    val_graph_dataset = KnapsackGraphDataset(val_dataset, normalize_features=True)
-    test_graph_dataset = KnapsackGraphDataset(test_dataset, normalize_features=True)
+    print(f"  Graph feature spec: {args.graph_feature_spec}")
+    train_graph_dataset = KnapsackGraphDataset(
+        train_dataset,
+        normalize_features=True,
+        graph_features=args.graph_feature_kwargs,
+    )
+    val_graph_dataset = KnapsackGraphDataset(
+        val_dataset,
+        normalize_features=True,
+        graph_features=args.graph_feature_kwargs,
+    )
+    test_graph_dataset = KnapsackGraphDataset(
+        test_dataset,
+        normalize_features=True,
+        graph_features=args.graph_feature_kwargs,
+    )
 
     strategy_kwargs = build_strategy_kwargs(args)
 
@@ -300,6 +333,7 @@ def architecture_ablation(args) -> dict:
             learning_rate=args.learning_rate,
             checkpoint_dir=os.path.join(args.output_dir, f"{arch_name}_checkpoint"),
             device=args.device,
+            seed=args.seed,
         )
         training_time = time.time() - training_start
 
@@ -370,7 +404,11 @@ def feature_ablation(args) -> dict:
 
     # Load trained model
     print(f"\nLoading trained model from {args.checkpoint_dir}...")
-    train_graph_dataset = KnapsackGraphDataset(train_dataset, normalize_features=True)
+    train_graph_dataset = KnapsackGraphDataset(
+        train_dataset,
+        normalize_features=True,
+        graph_features=args.graph_feature_kwargs,
+    )
 
     checkpoint_path = os.path.join(args.checkpoint_dir, "best_model.pt")
     model = create_pna_model(train_graph_dataset, hidden_dim=64, num_layers=3, dropout=0.1)
@@ -397,7 +435,11 @@ def feature_ablation(args) -> dict:
         # Create modified test dataset
         modified_instances = [transform_fn(inst) for inst in test_dataset.instances]
         modified_dataset = KnapsackDataset(modified_instances)
-        modified_graph_dataset = KnapsackGraphDataset(modified_dataset, normalize_features=True)
+        modified_graph_dataset = KnapsackGraphDataset(
+            modified_dataset,
+            normalize_features=True,
+            graph_features=args.graph_feature_kwargs,
+        )
 
         # Evaluate
         test_results = evaluate_model(
